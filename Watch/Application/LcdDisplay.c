@@ -138,7 +138,7 @@ static void WriteIcon4w10h(unsigned char const * pIcon,
                            unsigned char ColumnOffset);
 
 static void DisplayAmPm(void);
-static void DisplayDayOfWeek(void);
+//static void DisplayDayOfWeek(void);
 static void DisplayDate(void);
 
 /* the internal buffer */
@@ -1398,7 +1398,7 @@ static void DrawDateTime(unsigned char OnceConnected)
   // clean date&time area
   FillMyBuffer(STARTING_ROW, WATCH_DRAWN_IDLE_BUFFER_ROWS, 0x00);
   
-  gRow = 6;
+  gRow = 10;
   gColumn = 0;
   gBitColumnMask = BIT4;
   SetFont(MetaWatchTime);
@@ -1426,13 +1426,14 @@ static void DrawDateTime(unsigned char OnceConnected)
 
   if ( nvDisplaySeconds )
   {
-    int Seconds = RTCSEC;
-    msd = Seconds / 10;
-    lsd = Seconds % 10;
+// rm: seconds disabled, currently!
+//    int Seconds = RTCSEC;
+//    msd = Seconds / 10;
+//    lsd = Seconds % 10;
 
-    WriteFontCharacter(TIME_CHARACTER_COLON_INDEX);
-    WriteFontCharacter(msd);
-    WriteFontCharacter(lsd);
+//    WriteFontCharacter(TIME_CHARACTER_COLON_INDEX);
+//    WriteFontCharacter(msd);
+//    WriteFontCharacter(lsd);
 
   }
   else if (OnceConnected) /* now things starting getting fun....*/
@@ -1441,18 +1442,18 @@ static void DrawDateTime(unsigned char OnceConnected)
     if ( !QueryBluetoothOn() )
     {
       CopyColumnsIntoMyBuffer(pBluetoothOffIdlePageIcon,
-                              IDLE_PAGE_ICON_STARTING_ROW,
+                              IDLE_PAGE_ICON2_STARTING_ROW,
                               IDLE_PAGE_ICON_SIZE_IN_ROWS,
-                              IDLE_PAGE_ICON_STARTING_COL,
-                              IDLE_PAGE_ICON_SIZE_IN_COLS);
+                              IDLE_PAGE_ICON2_STARTING_COL,
+                              IDLE_PAGE_ICON2_SIZE_IN_COLS);
     }
     else if ( !QueryPhoneConnected() )
     {
       CopyColumnsIntoMyBuffer(pPhoneDisconnectedIdlePageIcon,
-                              IDLE_PAGE_ICON_STARTING_ROW,
+                              IDLE_PAGE_ICON2_STARTING_ROW,
                               IDLE_PAGE_ICON_SIZE_IN_ROWS,
-                              IDLE_PAGE_ICON_STARTING_COL,
-                              IDLE_PAGE_ICON_SIZE_IN_COLS);
+                              IDLE_PAGE_ICON2_STARTING_COL,
+                              IDLE_PAGE_ICON2_SIZE_IN_COLS);
     }
     else
     {
@@ -1476,21 +1477,33 @@ static void DrawDateTime(unsigned char OnceConnected)
                                   IDLE_PAGE_ICON2_STARTING_COL,
                                   IDLE_PAGE_ICON2_SIZE_IN_COLS);
         }
-        else
-        {
-          DisplayDayOfWeek();
-          DisplayDate();
-        }
+        //else
+        //{
+        //  DisplayDayOfWeek();
+        //  DisplayDate();
+        //}
       }
     }
   }
-  else
-  {
-    if ( GetTimeFormat() == TWELVE_HOUR ) DisplayAmPm();
-    DisplayDayOfWeek();
-    DisplayDate();
-  }
+  //else
+  //{
+
+  if ( GetTimeFormat() == TWELVE_HOUR ) DisplayAmPm();
+  //DisplayDayOfWeek();
+  DisplayDate();
+  //}
   
+  // Invert the clock (because it looks good!)
+  int row=0;
+  int col=0;
+  for( ; row < NUM_LCD_ROWS && row < WATCH_DRAWN_IDLE_BUFFER_ROWS; row++)
+  {
+    for(col = 0; col < NUM_LCD_COL_BYTES; col++)
+    {
+      pMyBuffer[row].Data[col] = ~(pMyBuffer[row].Data[col]);
+    }
+  }
+
   SendMyBufferToLcd(STARTING_ROW, WATCH_DRAWN_IDLE_BUFFER_ROWS);
 }
 
@@ -1498,23 +1511,20 @@ static void DisplayAmPm(void)
 {
   int Hour = RTCHOUR;
   unsigned char const *pIcon = ( Hour >= 12 ) ? Pm : Am;
-  WriteIcon4w10h(pIcon,0,8);
-}
-
-static void DisplayDayOfWeek(void)
-{
-  /* row offset = 0 or 10 , column offset = 8 */
-  //WriteIcon4w10h(DaysOfWeek[RTCDOW], GetTimeFormat() == TWENTY_FOUR_HOUR ? 0 : 10, 8);
-  gRow = GetTimeFormat() == TWENTY_FOUR_HOUR ? 3 : 13;
-  gColumn = 8;
-  SetFont(MetaWatch7);
-  WriteFontString((tString *)DaysOfTheWeek[GetLanguage()][RTCDOW]);
+  WriteIcon4w10h(pIcon,16,0);
 }
 
 static void DisplayDate(void)
 {
+  gRow = 2;
+  gColumn = 0;
+  SetFont(MetaWatch5);
+  WriteFontString((tString *)DaysOfTheWeek[GetLanguage()][RTCDOW]);
+
   if ( OnceConnected() )
   {
+	WriteFontString(" ");
+
     int First;
     int Second;
 
@@ -1530,15 +1540,26 @@ static void DisplayDate(void)
       Second = RTCMON;
     }
 
-    /* make it line up with AM/PM and Day of Week */
-    gRow = 22;
-    gColumn = 8;
-    gBitColumnMask = BIT1;
-    SetFont(MetaWatch7);
+    //gRow = 2;
+    //gColumn = 3;
+    //gBitColumnMask = BIT1;
+    //SetFont(MetaWatch5);
 
-    /* add year when time is in 24 hour mode */
-    if ( GetTimeFormat() == TWENTY_FOUR_HOUR )
-    {
+
+//    gColumn = 5;
+    gBitColumnMask = BIT1;
+    WriteFontCharacter(First/10+'0');
+    WriteFontCharacter(First%10+'0');
+    WriteFontCharacter(GetDateFormat() == MONTH_FIRST ? '/' : '.');
+    WriteFontCharacter(Second/10+'0');
+    WriteFontCharacter(Second%10+'0');
+
+    WriteFontCharacter(GetDateFormat() == MONTH_FIRST ? '/' : '.');
+
+
+    ///* add year when time is in 24 hour mode */
+    //if ( GetTimeFormat() == TWENTY_FOUR_HOUR )
+    //{
       int year = RTCYEAR;
       WriteFontCharacter(year/1000+'0');
       year %= 1000;
@@ -1547,16 +1568,9 @@ static void DisplayDate(void)
       WriteFontCharacter(year/10+'0');
       year %= 10;
       WriteFontCharacter(year+'0');
-      gRow = 12;
-    }
+      //gRow = 12;
+    //}
 
-    gColumn = 8;
-    gBitColumnMask = BIT1;
-    WriteFontCharacter(First/10+'0');
-    WriteFontCharacter(First%10+'0');
-    WriteFontCharacter(GetDateFormat() == MONTH_FIRST ? '/' : '.');
-    WriteFontCharacter(Second/10+'0');
-    WriteFontCharacter(Second%10+'0');
 
   }
 }
@@ -1575,7 +1589,8 @@ static void WriteIcon4w10h(unsigned char const * pIcon,
   {
     for ( RowNumber = 0; RowNumber < 10; RowNumber++ )
     {
-      pMyBuffer[RowNumber+RowOffset].Data[Column+ColumnOffset] =
+      // RM: Changed to |= to stop the icon overwriting the first time digit
+      pMyBuffer[RowNumber+RowOffset].Data[Column+ColumnOffset] |=
         pIcon[RowNumber+(Column*10)];
     }
   }
