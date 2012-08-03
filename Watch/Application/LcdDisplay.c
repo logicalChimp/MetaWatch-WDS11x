@@ -1426,14 +1426,20 @@ static void DrawDateTime(unsigned char OnceConnected)
 
   if ( nvDisplaySeconds )
   {
-// rm: seconds disabled, currently!
-//    int Seconds = RTCSEC;
-//    msd = Seconds / 10;
-//    lsd = Seconds % 10;
+    int Seconds = RTCSEC;
+    msd = Seconds / 10;
+    lsd = Seconds % 10;
 
-//    WriteFontCharacter(TIME_CHARACTER_COLON_INDEX);
-//    WriteFontCharacter(msd);
-//    WriteFontCharacter(lsd);
+    SetFont(MetaWatchSeconds);
+
+    int mask = gBitColumnMask;
+    gRow = 10;
+    gColumn = 10;
+    WriteFontCharacter(msd);
+    gRow = 19;
+    gColumn = 10;
+    gBitColumnMask = mask;
+    WriteFontCharacter(lsd);
 
   }
   else if (OnceConnected) /* now things starting getting fun....*/

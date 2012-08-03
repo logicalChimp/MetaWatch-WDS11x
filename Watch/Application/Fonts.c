@@ -32,11 +32,13 @@ const unsigned char MetaWatch5table[PRINTABLE_CHARACTERS][5];
 const unsigned char MetaWatch7table[PRINTABLE_CHARACTERS][7];
 const unsigned int MetaWatch16table[PRINTABLE_CHARACTERS][16];
 const unsigned int MetaWatchTimeTable[TOTAL_TIME_CHARACTERS][16];
+const unsigned char MetaWatchSecondsTable[TOTAL_SECONDS_CHARACTERS][7];
 
 const unsigned char MetaWatch5width[PRINTABLE_CHARACTERS];
 const unsigned char MetaWatch7width[PRINTABLE_CHARACTERS];
 const unsigned char MetaWatch16width[PRINTABLE_CHARACTERS];
 const unsigned char MetaWatchTimeWidth[TOTAL_TIME_CHARACTERS];
+const unsigned char MetaWatchSecondsWidth[TOTAL_SECONDS_CHARACTERS];
 
 /*! Font Structure
  *
@@ -83,6 +85,12 @@ void SetFont(etFontType Type)
     CurrentFont.Spacing = 2;
     break;
     
+  case MetaWatchSeconds:
+	CurrentFont.Type = Type;
+	CurrentFont.Height = 7;
+	CurrentFont.Spacing = 2;
+	break;
+
   default:
     PrintString("Undefined Font Selected\r\n");
     break;
@@ -103,10 +111,11 @@ unsigned char GetCharacterWidth(unsigned char Character)
   
   switch (CurrentFont.Type)
   {
-  case MetaWatch5:    Width = MetaWatch5width[index];    break;
-  case MetaWatch7:    Width = MetaWatch7width[index];    break;
-  case MetaWatch16:   Width = MetaWatch16width[index];   break;
-  case MetaWatchTime: Width = MetaWatchTimeWidth[index]; break;
+  case MetaWatch5:       Width = MetaWatch5width[index];    break;
+  case MetaWatch7:       Width = MetaWatch7width[index];    break;
+  case MetaWatch16:      Width = MetaWatch16width[index];   break;
+  case MetaWatchTime:    Width = MetaWatchTimeWidth[index]; break;
+  case MetaWatchSeconds: Width = 7; 						break;
   default : 
     break;
   }
@@ -137,6 +146,7 @@ unsigned char MapCharacterToIndex(unsigned char CharIn)
   switch (CurrentFont.Type)
   {
   case MetaWatchTime: 
+  case MetaWatchSeconds:
     Result = CharIn;  
     break;
     
@@ -177,6 +187,10 @@ void GetCharacterBitmap(unsigned char Character,unsigned int * pBitmap)
   
     case MetaWatchTime:
       pBitmap[row] = MetaWatchTimeTable[index][row];
+      break;
+
+    case MetaWatchSeconds:
+      pBitmap[row] = (unsigned int)MetaWatchSecondsTable[index][row];
       break;
       
     default:
@@ -1720,6 +1734,45 @@ const unsigned char MetaWatchTimeWidth[TOTAL_TIME_CHARACTERS] =
 		  4, /*   :      3A      */
 		 16, /*   ;      3B      */
 };
+
+
+/******************************************************************************/
+
+
+const unsigned char MetaWatchSecondsTable[TOTAL_SECONDS_CHARACTERS][7] =
+{
+		/* character 0x30 ('0'): (width=7, offset=0) */
+		0x7F, 0x63, 0x63, 0x63, 0x63, 0x63, 0x7F,
+
+		/* character 0x31 ('1'): (width=7, offset=7) */
+		0x60, 0x60, 0x60, 0x60, 0x60, 0x60, 0x60,
+
+		/* character 0x32 ('2'): (width=7, offset=14) */
+		0x7F, 0x60, 0x60, 0x7F, 0x03, 0x03, 0x7F,
+
+		/* character 0x33 ('3'): (width=7, offset=21) */
+		0x7F, 0x60, 0x60, 0x7F, 0x60, 0x60, 0x7F,
+
+		/* character 0x34 ('4'): (width=7, offset=28) */
+		0x63, 0x63, 0x63, 0x7F, 0x60, 0x60, 0x60,
+
+		/* character 0x35 ('5'): (width=7, offset=35) */
+		0x7F, 0x03, 0x03, 0x7F, 0x60, 0x60, 0x7F,
+
+		/* character 0x36 ('6'): (width=7, offset=42) */
+		0x7F, 0x03, 0x03, 0x7F, 0x63, 0x63, 0x7F,
+
+		/* character 0x37 ('7'): (width=7, offset=49) */
+		0x7F, 0x60, 0x60, 0x60, 0x60, 0x60, 0x60,
+
+		/* character 0x38 ('8'): (width=7, offset=56) */
+		0x7F, 0x63, 0x63, 0x7F, 0x63, 0x63, 0x7F,
+
+		/* character 0x39 ('9'): (width=7, offset=63) */
+		0x7F, 0x63, 0x63, 0x7F, 0x60, 0x60, 0x7F,
+
+};
+
 
 /******************************************************************************/
 

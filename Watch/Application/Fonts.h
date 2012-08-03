@@ -35,6 +35,7 @@ typedef enum
   MetaWatch7,
   MetaWatch16,
   MetaWatchTime,
+  MetaWatchSeconds,
   MetaWatch5Oled,
   MetaWatch7Oled,
   MetaWatch16Oled,
@@ -54,6 +55,7 @@ typedef enum
 #define MAX_FONT_COLUMNS ( 30 )
 
 #define TOTAL_TIME_CHARACTERS      ( 12 )
+#define TOTAL_SECONDS_CHARACTERS   ( 10 )
 #define TIME_CHARACTER_COLON_INDEX ( 10 )
 #define TIME_CHARACTER_SPACE_INDEX ( 11 )
 
