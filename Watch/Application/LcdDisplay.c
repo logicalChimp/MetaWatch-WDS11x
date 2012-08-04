@@ -217,6 +217,7 @@ static unsigned char gBitColumnMask;
 static unsigned char gColumn;
 static unsigned char gRow;
 
+static void AdvanceBitColumnMask(unsigned int pixels);
 static void WriteFontCharacter(unsigned char Character);
 static void WriteFontString(tString* pString);
 
@@ -1456,23 +1457,33 @@ static void DrawDateTime(unsigned char OnceConnected)
 
   if ( OnceConnected )
   {
-    gColumn = 8;
-    gBitColumnMask = BIT1;
+
 
     char bluetooth = QueryBluetoothOn();
+    char connected = QueryPhoneConnected();
+
+    if ( (!bluetooth) || (bluetooth&&connected) ) {
+      gColumn = 8;
+      gBitColumnMask = BIT5;
+    }
+    else
+    {
+      gColumn = 8;
+      gBitColumnMask = BIT1;
+    }
+
     DrawStatusIconCross( bluetooth );
     WriteFontCharacter(STATUS_ICON_BLUETOOTH);
 
     if (bluetooth) {
-      WriteFontCharacter(STATUS_ICON_SPACE);
-      DrawStatusIconCross( QueryPhoneConnected() );
+      AdvanceBitColumnMask(1);
+      DrawStatusIconCross( connected );
       WriteFontCharacter(STATUS_ICON_PHONE);
-      WriteFontCharacter(STATUS_ICON_SPACE);
     }
   }
 
 	gColumn = 10;
-	gBitColumnMask = BIT1;
+	gBitColumnMask = BIT0;
 	if ( QueryBatteryCharging() )
 	{
 		WriteFontCharacter(STATUS_ICON_SPARK);
@@ -1481,7 +1492,7 @@ static void DrawDateTime(unsigned char OnceConnected)
 	unsigned int bV = ReadBatterySenseAverage();
 
 	gColumn = 10;
-	gBitColumnMask = BIT7;
+	gBitColumnMask = BIT6;
 
 	if ( bV < 3500 )
 	{
@@ -1794,6 +1805,20 @@ static unsigned char CharacterRows;
 static unsigned char CharacterWidth;
 static unsigned int bitmap[MAX_FONT_ROWS];
 
+static void AdvanceBitColumnMask(unsigned int pixels)
+{
+  int i=0;
+  for(i = 0; i < pixels; i++)
+  {
+    gBitColumnMask = gBitColumnMask << 1;
+    if ( gBitColumnMask == 0 )
+    {
+      gBitColumnMask = BIT0;
+      gColumn++;
+    }
+  }
+}
+
 /* fonts can be up to 16 bits wide */
 static void WriteFontCharacter(unsigned char Character)
 {
@@ -1824,25 +1849,11 @@ static void WriteFontCharacter(unsigned char Character)
 
     /* the shift direction seems backwards... */
     CharacterMask = CharacterMask << 1;
-    gBitColumnMask = gBitColumnMask << 1;
-    if ( gBitColumnMask == 0 )
-    {
-      gBitColumnMask = BIT0;
-      gColumn++;
-    }
+    AdvanceBitColumnMask(1);
   }
 
   /* add spacing between characters */
-  unsigned char FontSpacing = GetFontSpacing();
-  for(i = 0; i < FontSpacing; i++)
-  {
-    gBitColumnMask = gBitColumnMask << 1;
-    if ( gBitColumnMask == 0 )
-    {
-      gBitColumnMask = BIT0;
-      gColumn++;
-    }
-  }
+  AdvanceBitColumnMask(GetFontSpacing());
 }
 
 void WriteFontString(tString *pString)
