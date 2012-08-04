@@ -1805,8 +1805,8 @@ const unsigned char StatusIconsTable[TOTAL_STATUS_ICONS][5] = {
 	/* character 0x34 ('4'): (width=8, offset=20) */
 	0x7F, 0xFF, 0xFF, 0xFF, 0x7F,
 
-	/* character 0x35 ('5'): (width=7, offset=25) */
-	0x08, 0x19, 0x3E, 0x4C, 0x08,
+	/* character 0x35 ('5'): (width=5, offset=25) */
+	0x00, 0x14, 0x0E, 0x05, 0x00,
 
 	/* character 0x36 ('6'): (width=5, offset=30) */
 	0x10, 0x08, 0x05, 0x02, 0x00,
@@ -1831,7 +1831,7 @@ const unsigned char StatusIconsWidth[TOTAL_STATUS_ICONS] =
 		  		  8, /*   2      32      */
 		  		  8, /*   3      33      */
 		  		  8, /*   4      34      */
-		  		  7, /*   5      35      */
+		  		  5, /*   5      35      */
 		  		  5, /*   6      36      */
 		  		  5, /*   7      37      */
 		  		  5, /*   8      38      */

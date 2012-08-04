@@ -1440,7 +1440,6 @@ static void DrawDateTime(unsigned char OnceConnected)
 
     SetFont(MetaWatchSeconds);
 
-
     int mask = gBitColumnMask;
     gRow = 10;
     gColumn = 10;
@@ -1451,34 +1450,35 @@ static void DrawDateTime(unsigned char OnceConnected)
     WriteFontCharacter(lsd);
 
   }
-  else if (OnceConnected) /* now things starting getting fun....*/
-  {
-	SetFont(StatusIcons);
-	gRow = 2;
-	gColumn = 7;
-	gBitColumnMask = BIT4;
 
-	char bluetooth = QueryBluetoothOn();
-	DrawStatusIconCross( bluetooth );
+  SetFont(StatusIcons);
+  gRow = 2;
+
+  if ( OnceConnected )
+  {
+    gColumn = 8;
+    gBitColumnMask = BIT1;
+
+    char bluetooth = QueryBluetoothOn();
+    DrawStatusIconCross( bluetooth );
     WriteFontCharacter(STATUS_ICON_BLUETOOTH);
 
-	gColumn = 8;
-	gBitColumnMask = BIT4;
-
     if (bluetooth) {
-	  DrawStatusIconCross( QueryPhoneConnected() );
+      WriteFontCharacter(STATUS_ICON_SPACE);
+      DrawStatusIconCross( QueryPhoneConnected() );
       WriteFontCharacter(STATUS_ICON_PHONE);
       WriteFontCharacter(STATUS_ICON_SPACE);
     }
+  }
 
-	gColumn = 9;
-	gBitColumnMask = BIT7;
-    if ( QueryBatteryCharging() )
-    {
-    	WriteFontCharacter(STATUS_ICON_SPARK);
-    }
+	gColumn = 10;
+	gBitColumnMask = BIT1;
+	if ( QueryBatteryCharging() )
+	{
+		WriteFontCharacter(STATUS_ICON_SPARK);
+	}
 
-    unsigned int bV = ReadBatterySenseAverage();
+	unsigned int bV = ReadBatterySenseAverage();
 
 	gColumn = 10;
 	gBitColumnMask = BIT7;
@@ -1495,13 +1495,11 @@ static void DrawDateTime(unsigned char OnceConnected)
 	{
 		WriteFontCharacter(STATUS_ICON_BATTERY_HALF);
 	}
-  }
 
   if ( GetTimeFormat() == TWELVE_HOUR ) DisplayAmPm();
 
-  //DisplayDate();
+  DisplayDate();
 
-  
   // Invert the clock (because it looks good!)
   int row=0;
   int col=0;
@@ -1533,54 +1531,39 @@ static void DisplayDate(void)
 
   if ( OnceConnected() )
   {
-	WriteFontString(" ");
+	WriteFontCharacter(' ');
 
-    int First;
-    int Second;
+  int First;
+  int Second;
 
-    /* determine if month or day is displayed first */
-    if ( GetDateFormat() == MONTH_FIRST )
-    {
-      First = RTCMON;
-      Second = RTCDAY;
-    }
-    else
-    {
-      First = RTCDAY;
-      Second = RTCMON;
-    }
+  /* determine if month or day is displayed first */
+  if ( GetDateFormat() == MONTH_FIRST )
+  {
+    First = RTCMON;
+    Second = RTCDAY;
+  }
+  else
+  {
+    First = RTCDAY;
+    Second = RTCMON;
+  }
 
-    //gRow = 2;
-    //gColumn = 3;
-    //gBitColumnMask = BIT1;
-    //SetFont(MetaWatch5);
+  WriteFontCharacter(First/10+'0');
+  WriteFontCharacter(First%10+'0');
+  WriteFontCharacter('.');
+  WriteFontCharacter(Second/10+'0');
+  WriteFontCharacter(Second%10+'0');
 
+  WriteFontCharacter('.');
 
-//    gColumn = 5;
-    //gBitColumnMask = BIT1;
-    WriteFontCharacter(First/10+'0');
-    WriteFontCharacter(First%10+'0');
-    WriteFontCharacter(GetDateFormat() == MONTH_FIRST ? '/' : '.');
-    WriteFontCharacter(Second/10+'0');
-    WriteFontCharacter(Second%10+'0');
-
-    WriteFontCharacter(GetDateFormat() == MONTH_FIRST ? '/' : '.');
-
-
-    ///* add year when time is in 24 hour mode */
-    //if ( GetTimeFormat() == TWENTY_FOUR_HOUR )
-    //{
-      int year = RTCYEAR;
-      WriteFontCharacter(year/1000+'0');
-      year %= 1000;
-      WriteFontCharacter(year/100+'0');
-      year %= 100;
-      WriteFontCharacter(year/10+'0');
-      year %= 10;
-      WriteFontCharacter(year+'0');
-      //gRow = 12;
-    //}
-
+  int year = RTCYEAR;
+  WriteFontCharacter(year/1000+'0');
+  year %= 1000;
+  WriteFontCharacter(year/100+'0');
+  year %= 100;
+  WriteFontCharacter(year/10+'0');
+  year %= 10;
+  WriteFontCharacter(year+'0');
 
   }
 }
