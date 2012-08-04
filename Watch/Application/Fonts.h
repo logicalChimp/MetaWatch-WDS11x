@@ -36,6 +36,7 @@ typedef enum
   MetaWatch16,
   MetaWatchTime,
   MetaWatchSeconds,
+  StatusIcons,
   MetaWatch5Oled,
   MetaWatch7Oled,
   MetaWatch16Oled,
@@ -58,6 +59,20 @@ typedef enum
 #define TOTAL_SECONDS_CHARACTERS   ( 10 )
 #define TIME_CHARACTER_COLON_INDEX ( 10 )
 #define TIME_CHARACTER_SPACE_INDEX ( 11 )
+#define TOTAL_STATUS_ICONS		   ( 10 )
+
+#define STATUS_ICON_BLUETOOTH	   ( 0 )
+#define STATUS_ICON_PHONE	       ( 1 )
+#define STATUS_ICON_BATTERY_EMPTY  ( 2 )
+#define STATUS_ICON_BATTERY_HALF   ( 3 )
+#define STATUS_ICON_BATTERY_FULL   ( 4 )
+#define STATUS_ICON_SPARK		   ( 5 )
+#define STATUS_ICON_TICK           ( 6 )
+#define STATUS_ICON_CROSS          ( 7 )
+#define STATUS_ICON_DISCOVER       ( 8 )
+#define STATUS_ICON_SPACE          ( 9 )
+
+
 
 /*! Convert a character into an index into the font table
  *

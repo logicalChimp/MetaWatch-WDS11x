@@ -1377,6 +1377,14 @@ static void CopyColumnsIntoMyBuffer(unsigned char const* pImage,
   }
 }
 
+static void DrawStatusIconCross(unsigned char bool)
+{
+	if ( !bool )
+	{
+		WriteFontCharacter(STATUS_ICON_CROSS);
+	}
+}
+
 static void DrawDateTime(unsigned char OnceConnected)
 {
   unsigned char msd;
@@ -1445,60 +1453,54 @@ static void DrawDateTime(unsigned char OnceConnected)
   }
   else if (OnceConnected) /* now things starting getting fun....*/
   {
-    if ( GetTimeFormat() == TWELVE_HOUR ) DisplayAmPm();
-    if ( !QueryBluetoothOn() )
-    {
-      CopyColumnsIntoMyBuffer(pBluetoothOffIdlePageIcon,
-                              IDLE_PAGE_ICON2_STARTING_ROW,
-                              IDLE_PAGE_ICON_SIZE_IN_ROWS,
-                              IDLE_PAGE_ICON2_STARTING_COL,
-                              IDLE_PAGE_ICON2_SIZE_IN_COLS);
-    }
-    else if ( !QueryPhoneConnected() )
-    {
-      CopyColumnsIntoMyBuffer(pPhoneDisconnectedIdlePageIcon,
-                              IDLE_PAGE_ICON2_STARTING_ROW,
-                              IDLE_PAGE_ICON_SIZE_IN_ROWS,
-                              IDLE_PAGE_ICON2_STARTING_COL,
-                              IDLE_PAGE_ICON2_SIZE_IN_COLS);
-    }
-    else
-    {
-      if ( QueryBatteryCharging() )
-      {
-        CopyColumnsIntoMyBuffer(pBatteryChargingIdlePageIconType2,
-                                IDLE_PAGE_ICON2_STARTING_ROW,
-                                IDLE_PAGE_ICON2_SIZE_IN_ROWS,
-                                IDLE_PAGE_ICON2_STARTING_COL,
-                                IDLE_PAGE_ICON2_SIZE_IN_COLS);
-      }
-      else
-      {
-        unsigned int bV = ReadBatterySenseAverage();
+	SetFont(StatusIcons);
+	gRow = 2;
+	gColumn = 7;
+	gBitColumnMask = BIT4;
 
-        if ( bV < 3500 )
-        {
-          CopyColumnsIntoMyBuffer(pLowBatteryIdlePageIconType2,
-                                  IDLE_PAGE_ICON2_STARTING_ROW,
-                                  IDLE_PAGE_ICON2_SIZE_IN_ROWS,
-                                  IDLE_PAGE_ICON2_STARTING_COL,
-                                  IDLE_PAGE_ICON2_SIZE_IN_COLS);
-        }
-        //else
-        //{
-        //  DisplayDayOfWeek();
-        //  DisplayDate();
-        //}
-      }
+	char bluetooth = QueryBluetoothOn();
+	DrawStatusIconCross( bluetooth );
+    WriteFontCharacter(STATUS_ICON_BLUETOOTH);
+
+	gColumn = 8;
+	gBitColumnMask = BIT4;
+
+    if (bluetooth) {
+	  DrawStatusIconCross( QueryPhoneConnected() );
+      WriteFontCharacter(STATUS_ICON_PHONE);
+      WriteFontCharacter(STATUS_ICON_SPACE);
     }
+
+	gColumn = 9;
+	gBitColumnMask = BIT7;
+    if ( QueryBatteryCharging() )
+    {
+    	WriteFontCharacter(STATUS_ICON_SPARK);
+    }
+
+    unsigned int bV = ReadBatterySenseAverage();
+
+	gColumn = 10;
+	gBitColumnMask = BIT7;
+
+	if ( bV < 3500 )
+	{
+	  WriteFontCharacter(STATUS_ICON_BATTERY_EMPTY);
+	}
+	else if ( bV > 4000 )
+	{
+		WriteFontCharacter(STATUS_ICON_BATTERY_FULL);
+	}
+	else
+	{
+		WriteFontCharacter(STATUS_ICON_BATTERY_HALF);
+	}
   }
-  //else
-  //{
 
   if ( GetTimeFormat() == TWELVE_HOUR ) DisplayAmPm();
-  //DisplayDayOfWeek();
-  DisplayDate();
-  //}
+
+  //DisplayDate();
+
   
   // Invert the clock (because it looks good!)
   int row=0;

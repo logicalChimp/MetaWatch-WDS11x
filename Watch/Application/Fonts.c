@@ -33,12 +33,13 @@ const unsigned char MetaWatch7table[PRINTABLE_CHARACTERS][7];
 const unsigned int MetaWatch16table[PRINTABLE_CHARACTERS][16];
 const unsigned int MetaWatchTimeTable[TOTAL_TIME_CHARACTERS][16];
 const unsigned char MetaWatchSecondsTable[TOTAL_SECONDS_CHARACTERS][7];
+const unsigned char StatusIconsTable[TOTAL_STATUS_ICONS][5];
 
 const unsigned char MetaWatch5width[PRINTABLE_CHARACTERS];
 const unsigned char MetaWatch7width[PRINTABLE_CHARACTERS];
 const unsigned char MetaWatch16width[PRINTABLE_CHARACTERS];
 const unsigned char MetaWatchTimeWidth[TOTAL_TIME_CHARACTERS];
-const unsigned char MetaWatchSecondsWidth[TOTAL_SECONDS_CHARACTERS];
+const unsigned char StatusIconsWidth[TOTAL_STATUS_ICONS];
 
 /*! Font Structure
  *
@@ -91,6 +92,12 @@ void SetFont(etFontType Type)
 	CurrentFont.Spacing = 2;
 	break;
 
+  case StatusIcons:
+	CurrentFont.Type = Type;
+	CurrentFont.Height = 5;
+	CurrentFont.Spacing = 0;
+	break;
+
   default:
     PrintString("Undefined Font Selected\r\n");
     break;
@@ -116,6 +123,7 @@ unsigned char GetCharacterWidth(unsigned char Character)
   case MetaWatch16:      Width = MetaWatch16width[index];   break;
   case MetaWatchTime:    Width = MetaWatchTimeWidth[index]; break;
   case MetaWatchSeconds: Width = 7; 						break;
+  case StatusIcons:      Width = StatusIconsWidth[index];   break;
   default : 
     break;
   }
@@ -147,6 +155,7 @@ unsigned char MapCharacterToIndex(unsigned char CharIn)
   {
   case MetaWatchTime: 
   case MetaWatchSeconds:
+  case StatusIcons:
     Result = CharIn;  
     break;
     
@@ -193,6 +202,9 @@ void GetCharacterBitmap(unsigned char Character,unsigned int * pBitmap)
       pBitmap[row] = (unsigned int)MetaWatchSecondsTable[index][row];
       break;
       
+    case StatusIcons:
+      pBitmap[row] = (unsigned int)StatusIconsTable[index][row];
+
     default:
       break;
     }
@@ -1771,6 +1783,59 @@ const unsigned char MetaWatchSecondsTable[TOTAL_SECONDS_CHARACTERS][7] =
 		/* character 0x39 ('9'): (width=7, offset=63) */
 		0x7F, 0x63, 0x63, 0x7F, 0x60, 0x60, 0x7F,
 
+};
+
+
+/******************************************************************************/
+
+const unsigned char StatusIconsTable[TOTAL_STATUS_ICONS][5] = {
+
+	/* character 0x30 ('0'): (width=5, offset=0) */
+	0x0C, 0x15, 0x0E, 0x15, 0x0C,
+
+	/* character 0x31 ('1'): (width=3, offset=5) */
+	0x01, 0x07, 0x07, 0x07, 0x07,
+
+	/* character 0x32 ('2'): (width=8, offset=10) */
+	0x7F, 0xC1, 0x81, 0xC1, 0x7F,
+
+	/* character 0x33 ('3'): (width=8, offset=15) */
+	0x7F, 0xCF, 0x8F, 0xCF, 0x7F,
+
+	/* character 0x34 ('4'): (width=8, offset=20) */
+	0x7F, 0xFF, 0xFF, 0xFF, 0x7F,
+
+	/* character 0x35 ('5'): (width=7, offset=25) */
+	0x08, 0x19, 0x3E, 0x4C, 0x08,
+
+	/* character 0x36 ('6'): (width=5, offset=30) */
+	0x10, 0x08, 0x05, 0x02, 0x00,
+
+	/* character 0x37 ('7'): (width=5, offset=35) */
+	0x00, 0x0A, 0x04, 0x0A, 0x00,
+
+	/* character 0x38 ('8'): (width=5, offset=40) */
+	0x1B, 0x23, 0x21, 0x31, 0x36,
+
+	/* character 0x39 ('9'): (width=2, offset=45) */
+	0x00, 0x00, 0x00, 0x00, 0x00,
+
+};
+
+const unsigned char StatusIconsWidth[TOTAL_STATUS_ICONS] =
+{
+		/*		width    char    hexcode */
+		/*		=====    ====    ======= */
+		  		  5, /*   0      30      */
+		  		  3, /*   1      31      */
+		  		  8, /*   2      32      */
+		  		  8, /*   3      33      */
+		  		  8, /*   4      34      */
+		  		  7, /*   5      35      */
+		  		  5, /*   6      36      */
+		  		  5, /*   7      37      */
+		  		  5, /*   8      38      */
+		  		  2, /*   9      39      */
 };
 
 
