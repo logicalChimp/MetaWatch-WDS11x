@@ -1432,6 +1432,7 @@ static void DrawDateTime(unsigned char OnceConnected)
 
     SetFont(MetaWatchSeconds);
 
+
     int mask = gBitColumnMask;
     gRow = 10;
     gColumn = 10;
@@ -1522,6 +1523,7 @@ static void DisplayAmPm(void)
 
 static void DisplayDate(void)
 {
+  gBitColumnMask = BIT2;
   gRow = 2;
   gColumn = 0;
   SetFont(MetaWatch5);
@@ -1553,7 +1555,7 @@ static void DisplayDate(void)
 
 
 //    gColumn = 5;
-    gBitColumnMask = BIT1;
+    //gBitColumnMask = BIT1;
     WriteFontCharacter(First/10+'0');
     WriteFontCharacter(First%10+'0');
     WriteFontCharacter(GetDateFormat() == MONTH_FIRST ? '/' : '.');
