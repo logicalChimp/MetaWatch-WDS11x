@@ -1406,10 +1406,18 @@ static void DrawDateTime(unsigned char OnceConnected)
 
   // clean date&time area
   FillMyBuffer(STARTING_ROW, WATCH_DRAWN_IDLE_BUFFER_ROWS, 0x00);
-  
+
   gRow = 10;
-  gColumn = 0;
-  gBitColumnMask = BIT4;
+  if ( nvDisplaySeconds )
+  {
+    gColumn = 0;
+    gBitColumnMask = BIT6;
+  }
+  else
+  {
+    gColumn = 1;
+    gBitColumnMask = BIT2;
+  }
   SetFont(MetaWatchTime);
 
   /* if first digit is zero then leave location blank */
