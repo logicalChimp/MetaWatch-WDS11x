@@ -82,6 +82,7 @@ static void DisplayQueueMessageHandler(tMessage* pMsg);
 
 static tMessage DisplayMsg;
 static tTimerId DisplayTimerId;
+static tTimerId LinkAlarmTimerId;
 static unsigned char RtcUpdateEnable;
 static unsigned char lastMin = 61;
 /* Message handlers */
@@ -197,6 +198,7 @@ static const unsigned char ButtonEvent[PAGE_NUMBERS][BUTTON_NUMBERS][2] =
 };
 
 static unsigned char SplashTimeout;
+static unsigned char DisplayDisconnectWarning = 0;
 
 static void ConfigureIdleUserInterfaceButtons(void);
 
@@ -383,6 +385,7 @@ static void DisplayQueueMessageHandler(tMessage* pMsg)
 
   case SplashTimeoutMsg:
     SplashTimeout = 1;
+    DisplayDisconnectWarning = 0;
     DetermineIdlePage();
     IdleUpdateHandler(IDLE_FULL_UPDATE);
     break;
@@ -396,6 +399,18 @@ static void DisplayQueueMessageHandler(tMessage* pMsg)
     {
       GenerateLinkAlarm();
     }
+    DisplayDisconnectWarning = 1;
+
+    SetupOneSecondTimer(LinkAlarmTimerId,
+                        ONE_SECOND*5,
+                        NO_REPEAT,
+                        DISPLAY_QINDEX,
+                        SplashTimeoutMsg,
+                        NO_MSG_OPTIONS);
+
+    StartOneSecondTimer(LinkAlarmTimerId);
+
+    IdleUpdateHandler(DATE_TIME_ONLY);
     break;
 
   case RamTestMsg:
@@ -412,9 +427,10 @@ static void DisplayQueueMessageHandler(tMessage* pMsg)
 static void AllocateDisplayTimers(void)
 {
   DisplayTimerId = AllocateOneSecondTimer();
+  LinkAlarmTimerId = AllocateOneSecondTimer();
 }
 
-static void SetupSplashScreenTimeout(void)
+static void SetupSplashScreenTimeout()
 {
   SetupOneSecondTimer(DisplayTimerId,
                       ONE_SECOND*3,
@@ -1407,56 +1423,80 @@ static void DrawDateTime(unsigned char OnceConnected)
   // clean date&time area
   FillMyBuffer(STARTING_ROW, WATCH_DRAWN_IDLE_BUFFER_ROWS, 0x00);
 
-  gRow = 10;
-  if ( nvDisplaySeconds )
+  if ( DisplayDisconnectWarning && (!QueryPhoneConnected()) )
   {
-    gColumn = 0;
-    gBitColumnMask = BIT6;
+    CopyColumnsIntoMyBuffer(pPhoneDisconnectedIdlePageIcon,
+                            10,
+                            IDLE_PAGE_ICON_SIZE_IN_ROWS,
+                            1,
+                            IDLE_PAGE_ICON_SIZE_IN_COLS);
+
+
+    SetFont(MetaWatch16);
+
+    gColumn = 3;
+    gBitColumnMask = BIT4;
+    gRow = 11;
+    WriteFontString("Link Lost");
+
   }
   else
   {
-    gColumn = 1;
-    gBitColumnMask = BIT2;
-  }
-  SetFont(MetaWatchTime);
 
-  /* if first digit is zero then leave location blank */
-  if ( msd == 0 && GetTimeFormat() == TWELVE_HOUR )
-  {
-    WriteFontCharacter(TIME_CHARACTER_SPACE_INDEX);
-  }
-  else
-  {
-    WriteFontCharacter(msd);
-  }
-
-  WriteFontCharacter(lsd);
-
-  WriteFontCharacter(TIME_CHARACTER_COLON_INDEX);
-
-  /* display minutes */
-  int Minutes = RTCMIN;
-  msd = Minutes / 10;
-  lsd = Minutes % 10;
-  WriteFontCharacter(msd);
-  WriteFontCharacter(lsd);
-
-  if ( nvDisplaySeconds )
-  {
-    int Seconds = RTCSEC;
-    msd = Seconds / 10;
-    lsd = Seconds % 10;
-
-    SetFont(MetaWatchSeconds);
-
-    int mask = gBitColumnMask;
     gRow = 10;
-    gColumn = 10;
-    WriteFontCharacter(msd);
-    gRow = 19;
-    gColumn = 10;
-    gBitColumnMask = mask;
+    if ( nvDisplaySeconds )
+    {
+      gColumn = 0;
+      gBitColumnMask = BIT6;
+    }
+    else
+    {
+      gColumn = 1;
+      gBitColumnMask = BIT2;
+    }
+    SetFont(MetaWatchTime);
+
+    /* if first digit is zero then leave location blank */
+    if ( msd == 0 && GetTimeFormat() == TWELVE_HOUR )
+    {
+      WriteFontCharacter(TIME_CHARACTER_SPACE_INDEX);
+    }
+    else
+    {
+      WriteFontCharacter(msd);
+    }
+
     WriteFontCharacter(lsd);
+
+    WriteFontCharacter(TIME_CHARACTER_COLON_INDEX);
+
+    /* display minutes */
+    int Minutes = RTCMIN;
+    msd = Minutes / 10;
+    lsd = Minutes % 10;
+    WriteFontCharacter(msd);
+    WriteFontCharacter(lsd);
+
+    if ( nvDisplaySeconds )
+    {
+      int Seconds = RTCSEC;
+      msd = Seconds / 10;
+      lsd = Seconds % 10;
+
+      SetFont(MetaWatchSeconds);
+
+      int mask = gBitColumnMask;
+      gRow = 10;
+      gColumn = 10;
+      WriteFontCharacter(msd);
+      gRow = 19;
+      gColumn = 10;
+      gBitColumnMask = mask;
+      WriteFontCharacter(lsd);
+
+    }
+
+    if ( GetTimeFormat() == TWELVE_HOUR ) DisplayAmPm();
 
   }
 
@@ -1465,8 +1505,6 @@ static void DrawDateTime(unsigned char OnceConnected)
 
   if ( OnceConnected )
   {
-
-
     char bluetooth = QueryBluetoothOn();
     char connected = QueryPhoneConnected();
 
@@ -1514,8 +1552,6 @@ static void DrawDateTime(unsigned char OnceConnected)
 	{
 		WriteFontCharacter(STATUS_ICON_BATTERY_HALF);
 	}
-
-  if ( GetTimeFormat() == TWELVE_HOUR ) DisplayAmPm();
 
   DisplayDate();
 
