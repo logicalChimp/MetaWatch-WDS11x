@@ -31,12 +31,15 @@
 const unsigned char MetaWatch5table[PRINTABLE_CHARACTERS][5];
 const unsigned char MetaWatch7table[PRINTABLE_CHARACTERS][7];
 const unsigned int MetaWatch16table[PRINTABLE_CHARACTERS][16];
-const unsigned int MetaWatchTimeTable[TOTAL_TIME_CHARACTERS][19];
+const unsigned int MetaWatchTimeTable[TOTAL_TIME_CHARACTERS][16];
+const unsigned char MetaWatchSecondsTable[TOTAL_SECONDS_CHARACTERS][7];
+const unsigned char StatusIconsTable[TOTAL_STATUS_ICONS][5];
 
 const unsigned char MetaWatch5width[PRINTABLE_CHARACTERS];
 const unsigned char MetaWatch7width[PRINTABLE_CHARACTERS];
 const unsigned char MetaWatch16width[PRINTABLE_CHARACTERS];
 const unsigned char MetaWatchTimeWidth[TOTAL_TIME_CHARACTERS];
+const unsigned char StatusIconsWidth[TOTAL_STATUS_ICONS];
 
 /*! Font Structure
  *
@@ -79,10 +82,22 @@ void SetFont(etFontType Type)
     
   case MetaWatchTime:
     CurrentFont.Type = Type;
-    CurrentFont.Height = 19;
-    CurrentFont.Spacing = 1;
+    CurrentFont.Height = 16;
+    CurrentFont.Spacing = 2;
     break;
     
+  case MetaWatchSeconds:
+	CurrentFont.Type = Type;
+	CurrentFont.Height = 7;
+	CurrentFont.Spacing = 2;
+	break;
+
+  case StatusIcons:
+	CurrentFont.Type = Type;
+	CurrentFont.Height = 5;
+	CurrentFont.Spacing = 0;
+	break;
+
   default:
     PrintString("Undefined Font Selected\r\n");
     break;
@@ -111,10 +126,12 @@ unsigned char GetCharacterWidth(unsigned char Character)
   
   switch (CurrentFont.Type)
   {
-  case MetaWatch5:    Width = MetaWatch5width[index];    break;
-  case MetaWatch7:    Width = MetaWatch7width[index];    break;
-  case MetaWatch16:   Width = MetaWatch16width[index];   break;
-  case MetaWatchTime: Width = MetaWatchTimeWidth[index]; break;
+  case MetaWatch5:       Width = MetaWatch5width[index];    break;
+  case MetaWatch7:       Width = MetaWatch7width[index];    break;
+  case MetaWatch16:      Width = MetaWatch16width[index];   break;
+  case MetaWatchTime:    Width = MetaWatchTimeWidth[index]; break;
+  case MetaWatchSeconds: Width = 7; 						break;
+  case StatusIcons:      Width = StatusIconsWidth[index];   break;
   default : 
     break;
   }
@@ -145,6 +162,8 @@ unsigned char MapCharacterToIndex(unsigned char CharIn)
   switch (CurrentFont.Type)
   {
   case MetaWatchTime: 
+  case MetaWatchSeconds:
+  case StatusIcons:
     Result = CharIn;  
     break;
     
@@ -186,7 +205,14 @@ void GetCharacterBitmap(unsigned char Character,unsigned int * pBitmap)
     case MetaWatchTime:
       pBitmap[row] = MetaWatchTimeTable[index][row];
       break;
+
+    case MetaWatchSeconds:
+      pBitmap[row] = (unsigned int)MetaWatchSecondsTable[index][row];
+      break;
       
+    case StatusIcons:
+      pBitmap[row] = (unsigned int)StatusIconsTable[index][row];
+
     default:
       break;
     }
@@ -1636,110 +1662,190 @@ const unsigned char MetaWatch16width[PRINTABLE_CHARACTERS] =
 };
 
 /******************************************************************************/
-const unsigned int MetaWatchTimeTable[TOTAL_TIME_CHARACTERS][19] = 
+const unsigned int MetaWatchTimeTable[TOTAL_TIME_CHARACTERS][16] =
 {
-  /* character 0x30 ('0'): (width=11, offset=0) */
-  0x01FC, 0x03FE, 0x07FF, 0x07FF, 
-  0x078F, 0x078F, 0x078F, 0x078F, 
-  0x078F, 0x078F, 0x078F, 0x078F, 
-  0x078F, 0x078F, 0x078F, 0x07FF, 
-  0x07FF, 0x03FE, 0x01FC, 
-  
-  /* character 0x31 ('1'): (width=11, offset=38) */
-  0x01C0, 0x01E0, 0x01F8, 0x01F8, 
-  0x01F8, 0x01F8, 0x01E0, 0x01E0, 
-  0x01E0, 0x01E0, 0x01E0, 0x01E0, 
-  0x01E0, 0x01E0, 0x01E0, 0x01E0, 
-  0x01E0, 0x01E0, 0x01E0, 
-  
-  /* character 0x32 ('2'): (width=11, offset=76) */
-  0x01FC, 0x03FE, 0x07FF, 0x07FF, 
-  0x078F, 0x078F, 0x0780, 0x07C0, 
-  0x07E0, 0x03F0, 0x01F8, 0x00FC, 
-  0x007E, 0x003F, 0x001F, 0x07FF, 
-  0x07FF, 0x07FF, 0x07FF, 
-  
-  /* character 0x33 ('3'): (width=11, offset=114) */
-  0x01FC, 0x03FE, 0x07FF, 0x07FF, 
-  0x078F, 0x078F, 0x0780, 0x07C0, 
-  0x03F0, 0x01F0, 0x03F0, 0x07C0, 
-  0x0780, 0x078F, 0x078F, 0x07FF, 
-  0x07FF, 0x03FE, 0x01FC, 
-  
-  /* character 0x34 ('4'): (width=11, offset=152) */
-  0x003C, 0x07BC, 0x07BC, 0x079E, 
-  0x079E, 0x078F, 0x078F, 0x07FF, 
-  0x07FF, 0x07FF, 0x07FF, 0x0780, 
-  0x0780, 0x0780, 0x0780, 0x0780, 
-  0x0780, 0x0780, 0x0780, 
-  
-  /* character 0x35 ('5'): (width=11, offset=190) */
-  0x07FF, 0x07FF, 0x07FF, 0x07FF, 
-  0x000F, 0x000F, 0x000F, 0x03FF, 
-  0x07FF, 0x07FF, 0x07FF, 0x0780, 
-  0x0780, 0x0780, 0x07C0, 0x07FF, 
-  0x03FF, 0x03FF, 0x00FF, 
-  
-  /* character 0x36 ('6'): (width=11, offset=228) */
-  0x01F0, 0x01FC, 0x01FE, 0x01FE, 
-  0x001F, 0x000F, 0x000F, 0x01FF, 
-  0x03FF, 0x07FF, 0x07FF, 0x078F, 
-  0x078F, 0x078F, 0x078F, 0x07FF, 
-  0x07FF, 0x03FE, 0x01FC, 
-  
-  /* character 0x37 ('7'): (width=11, offset=266) */
-  0x07FF, 0x07FF, 0x07FF, 0x07FF, 
-  0x0780, 0x07C0, 0x03C0, 0x03E0, 
-  0x01E0, 0x01F0, 0x00F0, 0x00F8, 
-  0x0078, 0x0078, 0x0078, 0x0078, 
-  0x0078, 0x0078, 0x0078, 
-  
-  /* character 0x38 ('8'): (width=11, offset=304) */
-  0x01FC, 0x03FE, 0x07FF, 0x07FF, 
-  0x078F, 0x078F, 0x078F, 0x07FF, 
-  0x07FF, 0x03FE, 0x07FF, 0x078F, 
-  0x078F, 0x078F, 0x078F, 0x07FF, 
-  0x07FF, 0x03FE, 0x01FC, 
-  
-  /* character 0x39 ('9'): (width=11, offset=342) */
-  0x01FC, 0x03FE, 0x07FF, 0x07FF, 
-  0x078F, 0x078F, 0x078F, 0x078F, 
-  0x07FF, 0x07FF, 0x07FE, 0x07FC, 
-  0x0780, 0x0780, 0x07C0, 0x03FC, 
-  0x03FC, 0x01FC, 0x007C, 
-  
-  /* character 0x3A (':'): (width=4, offset=380) */
-  0x0000, 0x0000, 0x0000, 0x0000, 
-  0x0006, 0x000F, 0x000F, 0x0006, 
-  0x0000, 0x0000, 0x0000, 0x0006, 
-  0x000F, 0x000F, 0x0006, 0x0000, 
-  0x0000, 0x0000, 0x0000, 
-  
-  /* character 0x3B (';'): (width=11, offset=418) */
-  0x0000, 0x0000, 0x0000, 0x0000, 
-  0x0000, 0x0000, 0x0000, 0x0000, 
-  0x0000, 0x0000, 0x0000, 0x0000, 
-  0x0000, 0x0000, 0x0000, 0x0000, 
-  0x0000, 0x0000, 0x0000, 
+		/* character 0x30 ('0'): (width=16, offset=0) */
+		0xFFFF, 0xFFFF, 0xFFFF, 0xFC3F,
+		0xFC3F, 0xFC3F, 0xFC3F, 0xFC3F,
+		0xFC3F, 0xFC3F, 0xFC3F, 0xFC3F,
+		0xFC3F, 0xFFFF, 0xFFFF, 0xFFFF,
+
+		/* character 0x31 ('1'): (width=16, offset=32) */
+		0xFE00, 0xFE00, 0xFE00, 0xFC00,
+		0xFC00, 0xFC00, 0xFC00, 0xFC00,
+		0xFC00, 0xFC00, 0xFC00, 0xFC00,
+		0xFC00, 0xFC00, 0xFC00, 0xFC00,
+
+		/* character 0x32 ('2'): (width=16, offset=64) */
+		0xFFFF, 0xFFFF, 0xFFFF, 0xFC3F,
+		0xFC00, 0xFC00, 0xFFFF, 0xFFFF,
+		0xFFFF, 0xFFFF, 0x003F, 0x003F,
+		0xFC3F, 0xFFFF, 0xFFFF, 0xFFFF,
+
+		/* character 0x33 ('3'): (width=16, offset=96) */
+		0xFFFF, 0xFFFF, 0xFFFF, 0xFC3F,
+		0xFC00, 0xFC00, 0xFFFF, 0xFFFF,
+		0xFFFF, 0xFFFF, 0xFC00, 0xFC00,
+		0xFC3F, 0xFFFF, 0xFFFF, 0xFFFF,
+
+		/* character 0x34 ('4'): (width=16, offset=128) */
+		0xFC3F, 0xFC3F, 0xFC3F, 0xFC3F,
+		0xFC3F, 0xFC3F, 0xFFFF, 0xFFFF,
+		0xFFFF, 0xFFFF, 0xFC00, 0xFC00,
+		0xFC00, 0xFC00, 0xFC00, 0xFC00,
+
+		/* character 0x35 ('5'): (width=16, offset=160) */
+		0xFFFF, 0xFFFF, 0xFFFF, 0xFC3F,
+		0x003F, 0x003F, 0xFFFF, 0xFFFF,
+		0xFFFF, 0xFFFF, 0xFC00, 0xFC00,
+		0xFC3F, 0xFFFF, 0xFFFF, 0xFFFF,
+
+		/* character 0x36 ('6'): (width=16, offset=192) */
+		0xFFFF, 0xFFFF, 0xFFFF, 0xFC3F,
+		0x003F, 0x003F, 0xFFFF, 0xFFFF,
+		0xFFFF, 0xFFFF, 0xFC3F, 0xFC3F,
+		0xFC3F, 0xFFFF, 0xFFFF, 0xFFFF,
+
+		/* character 0x37 ('7'): (width=16, offset=224) */
+		0xFFFF, 0xFFFF, 0xFFFF, 0xFC3F,
+		0xFC00, 0xFC00, 0xFC00, 0xFC00,
+		0xFC00, 0xFC00, 0xFC00, 0xFC00,
+		0xFC00, 0xFC00, 0xFC00, 0xFC00,
+
+		/* character 0x38 ('8'): (width=16, offset=256) */
+		0xFFFF, 0xFFFF, 0xFFFF, 0xFC3F,
+		0xFC3F, 0xFC3F, 0xFFFF, 0xFFFF,
+		0xFFFF, 0xFFFF, 0xFC3F, 0xFC3F,
+		0xFC3F, 0xFFFF, 0xFFFF, 0xFFFF,
+
+		/* character 0x39 ('9'): (width=16, offset=288) */
+		0xFFFF, 0xFFFF, 0xFFFF, 0xFC3F,
+		0xFC3F, 0xFC3F, 0xFFFF, 0xFFFF,
+		0xFFFF, 0xFFFF, 0xFC00, 0xFC00,
+		0xFC3F, 0xFFFF, 0xFFFF, 0xFFFF,
+
+		/* character 0x3A (':'): (width=4, offset=320) */
+		0x0000, 0x0000, 0x0000, 0x0000,
+		0x0006, 0x0006, 0x0000, 0x0000,
+		0x0000, 0x0000, 0x0006, 0x0006,
+		0x0000, 0x0000, 0x0000, 0x0000,
+
+		/* character 0x3B (';'): (width=16, offset=352) */
+		0x0000, 0x0000, 0x0000, 0x0000,
+		0x0000, 0x0000, 0x0000, 0x0000,
+		0x0000, 0x0000, 0x0000, 0x0000,
+		0x0000, 0x0000, 0x0000, 0x0000,
 };
 
 const unsigned char MetaWatchTimeWidth[TOTAL_TIME_CHARACTERS] = 
 {
 /*		width    char    hexcode */
 /*		=====    ====    ======= */
-  		 11, /*   0      30      */
-  		 11, /*   1      31      */
-  		 11, /*   2      32      */
-  		 11, /*   3      33      */
-  		 11, /*   4      34      */
-  		 11, /*   5      35      */
-  		 11, /*   6      36      */
-  		 11, /*   7      37      */
-  		 11, /*   8      38      */
-  		 11, /*   9      39      */
-  		  4, /*   :      3A      */
-  		 11, /*  ' '     3B      */ 
+		 16, /*   0      30      */
+		 16, /*   1      31      */
+		 16, /*   2      32      */
+		 16, /*   3      33      */
+		 16, /*   4      34      */
+		 16, /*   5      35      */
+		 16, /*   6      36      */
+		 16, /*   7      37      */
+		 16, /*   8      38      */
+		 16, /*   9      39      */
+		  4, /*   :      3A      */
+		 16, /*   ;      3B      */
 };
+
+
+/******************************************************************************/
+
+
+const unsigned char MetaWatchSecondsTable[TOTAL_SECONDS_CHARACTERS][7] =
+{
+		/* character 0x30 ('0'): (width=7, offset=0) */
+		0x7F, 0x63, 0x63, 0x63, 0x63, 0x63, 0x7F,
+
+		/* character 0x31 ('1'): (width=7, offset=7) */
+		0x60, 0x60, 0x60, 0x60, 0x60, 0x60, 0x60,
+
+		/* character 0x32 ('2'): (width=7, offset=14) */
+		0x7F, 0x60, 0x60, 0x7F, 0x03, 0x03, 0x7F,
+
+		/* character 0x33 ('3'): (width=7, offset=21) */
+		0x7F, 0x60, 0x60, 0x7F, 0x60, 0x60, 0x7F,
+
+		/* character 0x34 ('4'): (width=7, offset=28) */
+		0x63, 0x63, 0x63, 0x7F, 0x60, 0x60, 0x60,
+
+		/* character 0x35 ('5'): (width=7, offset=35) */
+		0x7F, 0x03, 0x03, 0x7F, 0x60, 0x60, 0x7F,
+
+		/* character 0x36 ('6'): (width=7, offset=42) */
+		0x7F, 0x03, 0x03, 0x7F, 0x63, 0x63, 0x7F,
+
+		/* character 0x37 ('7'): (width=7, offset=49) */
+		0x7F, 0x60, 0x60, 0x60, 0x60, 0x60, 0x60,
+
+		/* character 0x38 ('8'): (width=7, offset=56) */
+		0x7F, 0x63, 0x63, 0x7F, 0x63, 0x63, 0x7F,
+
+		/* character 0x39 ('9'): (width=7, offset=63) */
+		0x7F, 0x63, 0x63, 0x7F, 0x60, 0x60, 0x7F,
+
+};
+
+
+/******************************************************************************/
+
+const unsigned char StatusIconsTable[TOTAL_STATUS_ICONS][5] = {
+
+	/* character 0x30 ('0'): (width=5, offset=0) */
+	0x0C, 0x15, 0x0E, 0x15, 0x0C,
+
+	/* character 0x31 ('1'): (width=3, offset=5) */
+	0x01, 0x07, 0x07, 0x07, 0x07,
+
+	/* character 0x32 ('2'): (width=8, offset=10) */
+	0x7F, 0xC1, 0x81, 0xC1, 0x7F,
+
+	/* character 0x33 ('3'): (width=8, offset=15) */
+	0x7F, 0xCF, 0x8F, 0xCF, 0x7F,
+
+	/* character 0x34 ('4'): (width=8, offset=20) */
+	0x7F, 0xFF, 0xFF, 0xFF, 0x7F,
+
+	/* character 0x35 ('5'): (width=5, offset=25) */
+	0x00, 0x14, 0x0E, 0x05, 0x00,
+
+	/* character 0x36 ('6'): (width=5, offset=30) */
+	0x10, 0x08, 0x05, 0x02, 0x00,
+
+	/* character 0x37 ('7'): (width=5, offset=35) */
+	0x00, 0x0A, 0x04, 0x0A, 0x00,
+
+	/* character 0x38 ('8'): (width=5, offset=40) */
+	0x1B, 0x23, 0x21, 0x31, 0x36,
+
+	/* character 0x39 ('9'): (width=2, offset=45) */
+	0x00, 0x00, 0x00, 0x00, 0x00,
+
+};
+
+const unsigned char StatusIconsWidth[TOTAL_STATUS_ICONS] =
+{
+		/*		width    char    hexcode */
+		/*		=====    ====    ======= */
+		  		  5, /*   0      30      */
+		  		  3, /*   1      31      */
+		  		  8, /*   2      32      */
+		  		  8, /*   3      33      */
+		  		  8, /*   4      34      */
+		  		  5, /*   5      35      */
+		  		  5, /*   6      36      */
+		  		  5, /*   7      37      */
+		  		  5, /*   8      38      */
+		  		  2, /*   9      39      */
+};
+
 
 /******************************************************************************/
 

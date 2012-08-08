@@ -65,6 +65,7 @@ static void SendMyBufferToLcd(unsigned char TotalRows);
 static tMessage DisplayMsg;
 
 static tTimerId DisplayTimerId;
+static tTimerId LinkAlarmTimerId;
 static unsigned char RtcUpdateEnable;
 
 /* Message handlers */
@@ -84,8 +85,9 @@ static void ToggleSecondsHandler(unsigned char MsgOptions);
 static void ConnectionStateChangeHandler(void);
 
 /******************************************************************************/
-static void DrawIdleScreen(void);
-static void DrawSimpleIdleScreen(void);
+//static void DrawIdleScreen(void);
+//static void DrawSimpleIdleScreen(void);
+static void DrawDateTime(unsigned char OnceConnected);
 static void DrawConnectionScreen(void);
 static void InitMyBuffer(void);
 static void DisplayStartupScreen(void);
@@ -122,7 +124,7 @@ static void WriteIcon4w10h(unsigned char const * pIcon,
                            unsigned char ColumnOffset);
 
 static void DisplayAmPm(void);
-static void DisplayDayOfWeek(void);
+//static void DisplayDayOfWeek(void);
 static void DisplayDate(void);
 
 /* the internal buffer */
@@ -170,6 +172,7 @@ static etIdlePageMode CurrentIdlePage;
 static etIdlePageMode LastIdlePage = ReservedPage;
 
 static unsigned char AllowConnectionStateChangeToUpdateScreen;
+static unsigned char DisplayDisconnectWarning = 0;
 
 static void ConfigureIdleUserInterfaceButtons(void);
 
@@ -200,6 +203,7 @@ static unsigned char gBitColumnMask;
 static unsigned char gColumn;
 static unsigned char gRow;
 
+static void AdvanceBitColumnMask(unsigned int pixels);
 static void WriteFontCharacter(unsigned char Character);
 static void WriteFontString(tString* pString);
 
@@ -379,6 +383,7 @@ static void DisplayQueueMessageHandler(tMessage* pMsg)
 
   case SplashTimeoutMsg:
     AllowConnectionStateChangeToUpdateScreen = 1;
+    DisplayDisconnectWarning = 0;
     IdleUpdateHandler();
     break;
 
@@ -391,6 +396,18 @@ static void DisplayQueueMessageHandler(tMessage* pMsg)
     {
       GenerateLinkAlarm();
     }
+    DisplayDisconnectWarning = 1;
+
+    SetupOneSecondTimer(LinkAlarmTimerId,
+                        ONE_SECOND*5,
+                        NO_REPEAT,
+                        DISPLAY_QINDEX,
+                        SplashTimeoutMsg,
+                        NO_MSG_OPTIONS);
+
+    StartOneSecondTimer(LinkAlarmTimerId);
+
+    IdleUpdateHandler();
     break;
 
   case RamTestMsg:
@@ -408,9 +425,10 @@ static void DisplayQueueMessageHandler(tMessage* pMsg)
 static void AllocateDisplayTimers(void)
 {
   DisplayTimerId = AllocateOneSecondTimer();
+  LinkAlarmTimerId = AllocateOneSecondTimer();
 }
 
-static void SetupSplashScreenTimeout(void)
+static void SetupSplashScreenTimeout()
 {
   SetupOneSecondTimer(DisplayTimerId,
                       ONE_SECOND*3,
@@ -451,7 +469,8 @@ static void IdleUpdateHandler(void)
     {
       /* only draw watch part */
       FillMyBuffer(STARTING_ROW,WATCH_DRAWN_IDLE_BUFFER_ROWS,0x00);
-      DrawIdleScreen();
+      DrawDateTime( QueryFirstContact() );
+//      DrawIdleScreen();
       PrepareMyBufferForLcd(STARTING_ROW,WATCH_DRAWN_IDLE_BUFFER_ROWS);
       SendMyBufferToLcd(WATCH_DRAWN_IDLE_BUFFER_ROWS);
     }
@@ -475,7 +494,8 @@ static void IdleUpdateHandler(void)
     DetermineIdlePage();
 
     FillMyBuffer(STARTING_ROW,NUM_LCD_ROWS,0x00);
-    DrawSimpleIdleScreen();
+    DrawDateTime( QueryFirstContact() );
+//    DrawSimpleIdleScreen();
     DrawConnectionScreen();
 
     PrepareMyBufferForLcd(STARTING_ROW,NUM_LCD_ROWS);
@@ -1211,6 +1231,178 @@ static void CopyColumnsIntoMyBuffer(unsigned char const* pImage,
 
 }
 
+static void DrawStatusIconCross(unsigned char bool)
+{
+  if ( !bool )
+  {
+    WriteFontCharacter(STATUS_ICON_CROSS);
+  }
+}
+
+static void DrawDateTime(unsigned char OnceConnected)
+{
+  unsigned char msd;
+  unsigned char lsd;
+
+  /* display hour */
+  int Hour = RTCHOUR;
+
+  /* if required convert to twelve hour format */
+  if ( GetTimeFormat() == TWELVE_HOUR )
+  {
+    Hour %= 12;
+    if (Hour == 0) Hour = 12;
+  }
+  
+  msd = Hour / 10;
+  lsd = Hour % 10;
+
+  if ( DisplayDisconnectWarning && (!QueryPhoneConnected()) )
+  {
+    CopyColumnsIntoMyBuffer(pPhoneDisconnectedIdlePageIcon,
+                            10,
+                            IDLE_PAGE_ICON_SIZE_IN_ROWS,
+                            1,
+                            IDLE_PAGE_ICON_SIZE_IN_COLS);
+
+
+    SetFont(MetaWatch16);
+
+    gColumn = 3;
+    gBitColumnMask = BIT4;
+    gRow = 11;
+    WriteFontString("Link Lost");
+
+  }
+  else
+  {
+
+    gRow = 10;
+    if ( nvDisplaySeconds )
+    {
+      gColumn = 0;
+      gBitColumnMask = BIT6;
+    }
+    else
+    {
+      gColumn = 1;
+      gBitColumnMask = BIT2;
+    }
+    SetFont(MetaWatchTime);
+
+    /* if first digit is zero then leave location blank */
+    if ( msd == 0 && GetTimeFormat() == TWELVE_HOUR )
+    {
+      WriteFontCharacter(TIME_CHARACTER_SPACE_INDEX);
+    }
+    else
+    {
+      WriteFontCharacter(msd);
+    }
+
+    WriteFontCharacter(lsd);
+
+    WriteFontCharacter(TIME_CHARACTER_COLON_INDEX);
+
+    /* display minutes */
+    int Minutes = RTCMIN;
+    msd = Minutes / 10;
+    lsd = Minutes % 10;
+    WriteFontCharacter(msd);
+    WriteFontCharacter(lsd);
+
+    if ( nvDisplaySeconds )
+    {
+      int Seconds = RTCSEC;
+      msd = Seconds / 10;
+      lsd = Seconds % 10;
+
+      SetFont(MetaWatchSeconds);
+
+      int mask = gBitColumnMask;
+      gRow = 10;
+      gColumn = 10;
+      WriteFontCharacter(msd);
+      gRow = 19;
+      gColumn = 10;
+      gBitColumnMask = mask;
+      WriteFontCharacter(lsd);
+
+    }
+
+    if ( GetTimeFormat() == TWELVE_HOUR ) DisplayAmPm();
+
+  }
+
+  SetFont(StatusIcons);
+  gRow = 2;
+
+  if ( OnceConnected )
+  {
+    char bluetooth = QueryBluetoothOn();
+    char connected = QueryPhoneConnected();
+
+    if ( (!bluetooth) || (bluetooth&&connected) ) {
+      gColumn = 8;
+      gBitColumnMask = BIT5;
+    }
+    else
+    {
+      gColumn = 8;
+      gBitColumnMask = BIT1;
+    }
+
+    DrawStatusIconCross( bluetooth );
+    WriteFontCharacter(STATUS_ICON_BLUETOOTH);
+
+    if (bluetooth) {
+      AdvanceBitColumnMask(1);
+      DrawStatusIconCross( connected );
+      WriteFontCharacter(STATUS_ICON_PHONE);
+    }
+  }
+
+  gColumn = 10;
+  gBitColumnMask = BIT0;
+  if ( QueryBatteryCharging() )
+  {
+    WriteFontCharacter(STATUS_ICON_SPARK);
+  }
+
+  unsigned int bV = ReadBatterySenseAverage();
+
+  gColumn = 10;
+  gBitColumnMask = BIT6;
+
+  if ( bV < 3500 )
+  {
+    WriteFontCharacter(STATUS_ICON_BATTERY_EMPTY);
+  }
+  else if ( bV > 4000 )
+  {
+    WriteFontCharacter(STATUS_ICON_BATTERY_FULL);
+  }
+  else
+  {
+    WriteFontCharacter(STATUS_ICON_BATTERY_HALF);
+  }
+
+  DisplayDate();
+
+  // Invert the clock (because it looks good!)
+  int row=0;
+  int col=0;
+  for( ; row < NUM_LCD_ROWS && row < WATCH_DRAWN_IDLE_BUFFER_ROWS; row++)
+  {
+    for(col = 0; col < NUM_LCD_COL_BYTES; col++)
+    {
+      pMyBuffer[row].Data[col] = ~(pMyBuffer[row].Data[col]);
+    }
+  }
+}
+
+
+#if 0
 static void DrawIdleScreen(void)
 {
   unsigned char msd;
@@ -1394,6 +1586,7 @@ static void DrawSimpleIdleScreen(void)
   }
 
 }
+#endif
 
 static void MenuModeHandler(unsigned char MsgOptions)
 {
@@ -1757,6 +1950,7 @@ static void ToggleSecondsHandler(unsigned char Options)
 
 }
 
+#if 0
 static void DisplayAmPm(void)
 {
   /* don't display am/pm in 24 hour mode */
@@ -1835,6 +2029,61 @@ static void DisplayDate(void)
 
   }
 }
+# endif
+
+static void DisplayAmPm(void)
+{
+  int Hour = RTCHOUR;
+  unsigned char const *pIcon = ( Hour >= 12 ) ? Pm : Am;
+  WriteIcon4w10h(pIcon,16,0);
+}
+
+static void DisplayDate(void)
+{
+  gBitColumnMask = BIT2;
+  gRow = 2;
+  gColumn = 0;
+  SetFont(MetaWatch5);
+  WriteFontString((tString *)DaysOfTheWeek[RTCDOW]);
+
+  if ( QueryFirstContact() )
+  {
+  WriteFontCharacter(' ');
+
+  int First;
+  int Second;
+
+  /* determine if month or day is displayed first */
+  if ( GetDateFormat() == MONTH_FIRST )
+  {
+    First = RTCMON;
+    Second = RTCDAY;
+  }
+  else
+  {
+    First = RTCDAY;
+    Second = RTCMON;
+  }
+
+  WriteFontCharacter(First/10+'0');
+  WriteFontCharacter(First%10+'0');
+  WriteFontCharacter('.');
+  WriteFontCharacter(Second/10+'0');
+  WriteFontCharacter(Second%10+'0');
+
+  WriteFontCharacter('.');
+
+  int year = RTCYEAR;
+  WriteFontCharacter(year/1000+'0');
+  year %= 1000;
+  WriteFontCharacter(year/100+'0');
+  year %= 100;
+  WriteFontCharacter(year/10+'0');
+  year %= 10;
+  WriteFontCharacter(year+'0');
+
+  }
+}
 
 /* these items are 4w by 10h */
 static void WriteIcon4w10h(unsigned char const * pIcon,
@@ -1850,7 +2099,8 @@ static void WriteIcon4w10h(unsigned char const * pIcon,
   {
     for ( RowNumber = 0; RowNumber < 10; RowNumber++ )
     {
-      pMyBuffer[RowNumber+RowOffset].Data[Column+ColumnOffset] =
+      // RM: Changed to |= to stop the icon overwriting the first time digit
+      pMyBuffer[RowNumber+RowOffset].Data[Column+ColumnOffset] |=
         pIcon[RowNumber+(Column*10)];
     }
   }
@@ -2604,6 +2854,20 @@ static unsigned char CharacterRows;
 static unsigned char CharacterWidth;
 static unsigned int bitmap[MAX_FONT_ROWS];
 
+static void AdvanceBitColumnMask(unsigned int pixels)
+{
+  int i=0;
+  for(i = 0; i < pixels; i++)
+  {
+    gBitColumnMask = gBitColumnMask << 1;
+    if ( gBitColumnMask == 0 )
+    {
+      gBitColumnMask = BIT0;
+      gColumn++;
+    }
+  }
+}
+
 /* fonts can be up to 16 bits wide */
 static void WriteFontCharacter(unsigned char Character)
 {
@@ -2634,27 +2898,11 @@ static void WriteFontCharacter(unsigned char Character)
 
     /* the shift direction seems backwards... */
     CharacterMask = CharacterMask << 1;
-    gBitColumnMask = gBitColumnMask << 1;
-    if ( gBitColumnMask == 0 )
-    {
-      gBitColumnMask = BIT0;
-      gColumn++;
-    }
-
+    AdvanceBitColumnMask(1);
   }
 
   /* add spacing between characters */
-  unsigned char FontSpacing = GetFontSpacing();
-  for(i = 0; i < FontSpacing; i++)
-  {
-    gBitColumnMask = gBitColumnMask << 1;
-    if ( gBitColumnMask == 0 )
-    {
-      gBitColumnMask = BIT0;
-      gColumn++;
-    }
-  }
-
+  AdvanceBitColumnMask(GetFontSpacing());
 }
 
 void WriteFontString(tString *pString)
