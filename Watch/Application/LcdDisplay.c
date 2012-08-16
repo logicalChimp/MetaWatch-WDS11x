@@ -85,8 +85,6 @@ static void ToggleSecondsHandler(unsigned char MsgOptions);
 static void ConnectionStateChangeHandler(void);
 
 /******************************************************************************/
-//static void DrawIdleScreen(void);
-//static void DrawSimpleIdleScreen(void);
 static void DrawDateTime(unsigned char OnceConnected);
 static void DrawConnectionScreen(void);
 static void InitMyBuffer(void);
@@ -124,7 +122,6 @@ static void WriteIcon4w10h(unsigned char const * pIcon,
                            unsigned char ColumnOffset);
 
 static void DisplayAmPm(void);
-//static void DisplayDayOfWeek(void);
 static void DisplayDate(void);
 
 /* the internal buffer */
@@ -469,8 +466,7 @@ static void IdleUpdateHandler(void)
     {
       /* only draw watch part */
       FillMyBuffer(STARTING_ROW,WATCH_DRAWN_IDLE_BUFFER_ROWS,0x00);
-      DrawDateTime( QueryFirstContact() );
-//      DrawIdleScreen();
+      DrawDateTime( 1 );
       PrepareMyBufferForLcd(STARTING_ROW,WATCH_DRAWN_IDLE_BUFFER_ROWS);
       SendMyBufferToLcd(WATCH_DRAWN_IDLE_BUFFER_ROWS);
     }
@@ -494,8 +490,7 @@ static void IdleUpdateHandler(void)
     DetermineIdlePage();
 
     FillMyBuffer(STARTING_ROW,NUM_LCD_ROWS,0x00);
-    DrawDateTime( QueryFirstContact() );
-//    DrawSimpleIdleScreen();
+    DrawDateTime( 0 );
     DrawConnectionScreen();
 
     PrepareMyBufferForLcd(STARTING_ROW,NUM_LCD_ROWS);
@@ -1400,193 +1395,6 @@ static void DrawDateTime(unsigned char OnceConnected)
     }
   }
 }
-
-
-#if 0
-static void DrawIdleScreen(void)
-{
-  unsigned char msd;
-  unsigned char lsd;
-
-  /* display hour */
-  int Hour = RTCHOUR;
-
-  /* if required convert to twelve hour format */
-  if ( GetTimeFormat() == TWELVE_HOUR )
-  {
-    if ( Hour == 0 )
-    {
-      Hour = 12;
-    }
-    else if ( Hour > 12 )
-    {
-      Hour -= 12;
-    }
-  }
-
-  msd = Hour / 10;
-  lsd = Hour % 10;
-
-  gRow = 6;
-  gColumn = 0;
-  gBitColumnMask = BIT4;
-  SetFont(MetaWatchTime);
-
-  /* if first digit is zero then leave location blank */
-  if ( msd == 0 && GetTimeFormat() == TWELVE_HOUR )
-  {
-    WriteFontCharacter(TIME_CHARACTER_SPACE_INDEX);
-  }
-  else
-  {
-    WriteFontCharacter(msd);
-  }
-
-  WriteFontCharacter(lsd);
-
-  WriteFontCharacter(TIME_CHARACTER_COLON_INDEX);
-
-  /* display minutes */
-  int Minutes = RTCMIN;
-  msd = Minutes / 10;
-  lsd = Minutes % 10;
-  WriteFontCharacter(msd);
-  WriteFontCharacter(lsd);
-
-  if ( nvDisplaySeconds )
-  {
-    int Seconds = RTCSEC;
-    msd = Seconds / 10;
-    lsd = Seconds % 10;
-
-    WriteFontCharacter(TIME_CHARACTER_COLON_INDEX);
-    WriteFontCharacter(msd);
-    WriteFontCharacter(lsd);
-
-  }
-  else /* now things starting getting fun....*/
-  {
-    DisplayAmPm();
-
-    if ( QueryBluetoothOn() == 0 )
-    {
-      CopyColumnsIntoMyBuffer(pBluetoothOffIdlePageIcon,
-                              IDLE_PAGE_ICON_STARTING_ROW,
-                              IDLE_PAGE_ICON_SIZE_IN_ROWS,
-                              IDLE_PAGE_ICON_STARTING_COL,
-                              IDLE_PAGE_ICON_SIZE_IN_COLS);
-    }
-    else if ( QueryPhoneConnected() == 0 )
-    {
-      CopyColumnsIntoMyBuffer(pPhoneDisconnectedIdlePageIcon,
-                              IDLE_PAGE_ICON_STARTING_ROW,
-                              IDLE_PAGE_ICON_SIZE_IN_ROWS,
-                              IDLE_PAGE_ICON_STARTING_COL,
-                              IDLE_PAGE_ICON_SIZE_IN_COLS);
-    }
-    else
-    {
-      if ( QueryBatteryCharging() )
-      {
-        CopyColumnsIntoMyBuffer(pBatteryChargingIdlePageIconType2,
-                                IDLE_PAGE_ICON2_STARTING_ROW,
-                                IDLE_PAGE_ICON2_SIZE_IN_ROWS,
-                                IDLE_PAGE_ICON2_STARTING_COL,
-                                IDLE_PAGE_ICON2_SIZE_IN_COLS);
-      }
-      else
-      {
-        unsigned int bV = ReadBatterySenseAverage();
-
-        if ( bV < 3500 )
-        {
-          CopyColumnsIntoMyBuffer(pLowBatteryIdlePageIconType2,
-                                  IDLE_PAGE_ICON2_STARTING_ROW,
-                                  IDLE_PAGE_ICON2_SIZE_IN_ROWS,
-                                  IDLE_PAGE_ICON2_STARTING_COL,
-                                  IDLE_PAGE_ICON2_SIZE_IN_COLS);
-        }
-        else
-        {
-          DisplayDayOfWeek();
-          DisplayDate();
-        }
-      }
-    }
-  }
-
-}
-
-static void DrawSimpleIdleScreen(void)
-{
-  unsigned char msd;
-  unsigned char lsd;
-
-  /* display hour */
-  int Hour = RTCHOUR;
-
-  /* if required convert to twelve hour format */
-  if ( GetTimeFormat() == TWELVE_HOUR )
-  {
-    if ( Hour == 0 )
-    {
-      Hour = 12;
-    }
-    else if ( Hour > 12 )
-    {
-      Hour -= 12;
-    }
-  }
-
-  msd = Hour / 10;
-  lsd = Hour % 10;
-
-  gRow = 6;
-  gColumn = 0;
-  gBitColumnMask = BIT4;
-  SetFont(MetaWatchTime);
-
-  /* if first digit is zero then leave location blank */
-  if ( msd == 0 && GetTimeFormat() == TWELVE_HOUR )
-  {
-    WriteFontCharacter(TIME_CHARACTER_SPACE_INDEX);
-  }
-  else
-  {
-    WriteFontCharacter(msd);
-  }
-  WriteFontCharacter(lsd);
-
-  WriteFontCharacter(TIME_CHARACTER_COLON_INDEX);
-
-  /* display minutes */
-  int Minutes = RTCMIN;
-  msd = Minutes / 10;
-  lsd = Minutes % 10;
-  WriteFontCharacter(msd);
-  WriteFontCharacter(lsd);
-
-  if ( nvDisplaySeconds )
-  {
-    int Seconds = RTCSEC;
-    msd = Seconds / 10;
-    lsd = Seconds % 10;
-
-    WriteFontCharacter(TIME_CHARACTER_COLON_INDEX);
-    WriteFontCharacter(msd);
-    WriteFontCharacter(lsd);
-
-  }
-  else
-  {
-    DisplayAmPm();
-    DisplayDayOfWeek();
-    DisplayDate();
-
-  }
-
-}
-#endif
 
 static void MenuModeHandler(unsigned char MsgOptions)
 {
