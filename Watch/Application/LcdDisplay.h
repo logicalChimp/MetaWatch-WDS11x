@@ -56,6 +56,10 @@ unsigned char GetIdleBufferConfiguration(void);
  * \return 1 when display should be inverted 
  */
 unsigned char QueryInvertDisplay(void);
+/*! 
+ * \return 1 when clock should be inverted 
+ */
+unsigned char QueryInvertClock(void);
 
 /*! Get pointer to an LCD screen template
  *
