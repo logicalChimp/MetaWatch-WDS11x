@@ -86,15 +86,6 @@ extern const unsigned char pBatteryMediumStatusScreenIcon[36*4];
 #define IDLE_PAGE_ICON_SIZE_IN_ROWS ( 20 )
 #define IDLE_PAGE_ICON_SIZE_IN_COLS ( 2 )
 
-extern const unsigned char pBluetoothOffIdlePageIcon[20*2];
 extern const unsigned char pPhoneDisconnectedIdlePageIcon[20*2];
-
-#define IDLE_PAGE_ICON2_STARTING_ROW ( 0 )
-#define IDLE_PAGE_ICON2_STARTING_COL ( 10 )
-#define IDLE_PAGE_ICON2_SIZE_IN_ROWS ( 30 )
-#define IDLE_PAGE_ICON2_SIZE_IN_COLS ( 2 )
-
-extern const unsigned char pBatteryChargingIdlePageIconType2[30*2];
-extern const unsigned char pLowBatteryIdlePageIconType2[30*2];
 
 #endif /*ICONS_H*/
