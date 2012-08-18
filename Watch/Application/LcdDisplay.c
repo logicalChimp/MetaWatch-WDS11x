@@ -956,7 +956,12 @@ static void DrawMenu3(void)
 {
   unsigned char const * pIcon;
 
-  pIcon = pNormalDisplayMenuIcon;
+  if ( QueryInvertClock() )
+  {
+    pIcon = pClockInvertedMenuIcon;
+  } else {
+    pIcon = pNormalDisplayMenuIcon;
+  }
 
   CopyColumnsIntoMyBuffer(pIcon,
                           BUTTON_ICON_A_F_ROW,

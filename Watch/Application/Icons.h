@@ -51,6 +51,7 @@ extern const unsigned char pRstPinIcon[32*6];
 extern const unsigned char pNmiPinIcon[32*6]; 
 extern const unsigned char pResetButtonIcon[32*6];
 extern const unsigned char pNormalDisplayMenuIcon[32*6];
+extern const unsigned char pClockInvertedMenuIcon[32*6];
 extern const unsigned char pSecondsOnMenuIcon[32*6];
 extern const unsigned char pSecondsOffMenuIcon[32*6];
 extern const unsigned char pShippingModeIcon[32*6];
