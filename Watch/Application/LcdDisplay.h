@@ -57,6 +57,14 @@ unsigned char GetIdleBufferConfiguration(void);
  */
 unsigned char QueryInvertDisplay(void);
 
+#define NORMAL_CLOCK ( 0 )
+#define INVERT_CLOCK ( 1 )
+
+/*! 
+ * \return 1 when clock should be inverted 
+ */
+unsigned char QueryInvertClock(void);
+
 /*! Get pointer to an LCD screen template
  *
  *\return NULL - NOT IMPLEMENTED - end result is to have phone be able to program
