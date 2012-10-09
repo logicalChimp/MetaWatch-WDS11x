@@ -35,6 +35,7 @@ typedef enum
   MetaWatch7,
   MetaWatch16,
   MetaWatchTime,
+  MetaWatchTallTime,
   MetaWatchSeconds,
   StatusIcons,
   MetaWatch5Oled,

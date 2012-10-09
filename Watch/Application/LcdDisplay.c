@@ -144,8 +144,8 @@ static void DisplayDate(void);
 
 /* the internal buffer */
 #define STARTING_ROW                  ( 0 )
-#define WATCH_DRAWN_IDLE_BUFFER_ROWS  ( 30 )
-#define PHONE_IDLE_BUFFER_ROWS        ( 66 )
+#define WATCH_DRAWN_IDLE_BUFFER_ROWS  ( 63 )
+#define PHONE_IDLE_BUFFER_ROWS        ( 33 )
 
 static tLcdLine pMyBuffer[NUM_LCD_ROWS];
 
@@ -721,7 +721,7 @@ static void MenuButtonHandler(unsigned char MsgOptions)
     break;
 
   case MENU_BUTTON_OPTION_INVERT_DISPLAY:
-    nvIdleBufferInvert = !nvIdleBufferInvert;
+    nvIdleBufferInvert = (nvIdleBufferInvert + 1) % 4;
     MenuModeHandler(MENU_MODE_OPTION_UPDATE_CURRENT_PAGE);
     break;
 
@@ -956,7 +956,12 @@ static void DrawMenu3(void)
 {
   unsigned char const * pIcon;
 
-  pIcon = pNormalDisplayMenuIcon;
+  if ( QueryInvertClock() )
+  {
+    pIcon = pClockInvertedMenuIcon;
+  } else {
+    pIcon = pNormalDisplayMenuIcon;
+  }
 
   CopyColumnsIntoMyBuffer(pIcon,
                           BUTTON_ICON_A_F_ROW,
@@ -1228,16 +1233,16 @@ static void ConfigureDisplayHandler(tMessage* pMsg)
     nvDisplaySeconds = 0x01;
     break;
   case CONFIGURE_DISPLAY_OPTION_DONT_INVERT_DISPLAY:
-    if(nvIdleBufferInvert) 
+    if(QueryInvertDisplay() == NORMAL_DISPLAY) 
     {
-      nvIdleBufferInvert = 0x00;
+      nvIdleBufferInvert = (nvIdleBufferInvert & 0x02) | 0x00;
       UpdateDisplayHandler(IDLE_FULL_UPDATE);
     }
     break;
   case CONFIGURE_DISPLAY_OPTION_INVERT_DISPLAY:
-     if(!nvIdleBufferInvert) 
+     if(QueryInvertDisplay() == INVERT_DISPLAY) 
     {
-      nvIdleBufferInvert = 0x01;
+      nvIdleBufferInvert = (nvIdleBufferInvert & 0x02) | 0x01;
       UpdateDisplayHandler(IDLE_FULL_UPDATE);
     }
     break;
@@ -1454,7 +1459,7 @@ static void DrawDateTime(unsigned char OnceConnected)
       gColumn = 1;
       gBitColumnMask = BIT2;
     }
-    SetFont(MetaWatchTime);
+    SetFont(MetaWatchTallTime);
 
     /* if first digit is zero then leave location blank */
     if ( msd == 0 && GetTimeFormat() == TWELVE_HOUR )
@@ -1556,13 +1561,16 @@ static void DrawDateTime(unsigned char OnceConnected)
   DisplayDate();
 
   // Invert the clock (because it looks good!)
-  int row=0;
-  int col=0;
-  for( ; row < NUM_LCD_ROWS && row < WATCH_DRAWN_IDLE_BUFFER_ROWS; row++)
-  {
-    for(col = 0; col < NUM_LCD_COL_BYTES; col++)
+  if ( QueryInvertClock() )
     {
-      pMyBuffer[row].Data[col] = ~(pMyBuffer[row].Data[col]);
+    int row=0;
+    int col=0;
+    for( ; row < NUM_LCD_ROWS && row < WATCH_DRAWN_IDLE_BUFFER_ROWS; row++)
+    {
+      for(col = 0; col < NUM_LCD_COL_BYTES; col++)
+      {
+        pMyBuffer[row].Data[col] = ~(pMyBuffer[row].Data[col]);
+      }
     }
   }
 
@@ -1839,7 +1847,12 @@ unsigned char QueryDisplaySeconds(void)
 
 unsigned char QueryInvertDisplay(void)
 {
-  return nvIdleBufferInvert;
+  return nvIdleBufferInvert & 0x01;
+}
+
+unsigned char QueryInvertClock(void)
+{
+  return (nvIdleBufferInvert & 0x02) >> 1;
 }
 
 /******************************************************************************/
