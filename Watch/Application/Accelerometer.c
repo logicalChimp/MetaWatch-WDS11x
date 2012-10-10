@@ -42,7 +42,6 @@
 
 static unsigned char WriteRegisterData;
 static unsigned char pReadRegisterData[16];
-static unsigned char InvertOption;
 static unsigned char Enabled = 0;
 /******************************************************************************/
 

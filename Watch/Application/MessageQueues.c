@@ -169,7 +169,6 @@ void SendMessageToQueueFromIsr(unsigned char Qindex, tMessage* pMsg)
   
 }
 
-static unsigned char LastMessageType = 0;
 static unsigned char AddNewline = 0;
 
 void PrintMessageType(tMessage* pMsg)
@@ -193,7 +192,6 @@ void PrintMessageType(tMessage* pMsg)
   
     AddNewline = 0;
   }
-  LastMessageType = MessageType;
   
   
 
