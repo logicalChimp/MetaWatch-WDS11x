@@ -554,8 +554,9 @@ void LoadTemplateHandler(tMessage* pMsg)
 /* determine if the phone is controlling all of the idle screen */
 unsigned char GetStartingRow(unsigned char Mode)
 {
-  return (Mode == IDLE_BUFFER_SELECT &&
-    GetIdleBufferConfiguration() == WATCH_CONTROLS_TOP) ? 63 : 0;
+  return (Mode == IDLE_BUFFER_SELECT && GetIdleBufferConfiguration() == WATCH_CONTROLS_TOP) ?
+		  ((!QueryPhoneConnected()) ? 96 : 63)
+		  : 0;
 }
 
 unsigned char GetBufferIndex(unsigned char Mode, unsigned char Type)
