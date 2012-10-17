@@ -198,7 +198,7 @@ static const unsigned char ButtonEvent[PAGE_NUMBERS][BUTTON_NUMBERS][2] =
 };
 
 static unsigned char SplashTimeout;
-static unsigned char DisplayDisconnectWarning = 0;
+//static unsigned char DisplayDisconnectWarning = 0;
 
 static void ConfigureIdleUserInterfaceButtons(void);
 
@@ -385,7 +385,7 @@ static void DisplayQueueMessageHandler(tMessage* pMsg)
 
   case SplashTimeoutMsg:
     SplashTimeout = 1;
-    DisplayDisconnectWarning = 0;
+//    DisplayDisconnectWarning = 0;
     DetermineIdlePage();
     IdleUpdateHandler(IDLE_FULL_UPDATE);
     break;
@@ -399,7 +399,7 @@ static void DisplayQueueMessageHandler(tMessage* pMsg)
     {
       GenerateLinkAlarm();
     }
-    DisplayDisconnectWarning = 1;
+//    DisplayDisconnectWarning = 1;
 
     SetupOneSecondTimer(LinkAlarmTimerId,
                         ONE_SECOND*5,
@@ -837,40 +837,40 @@ static void ToggleSecondsHandler(unsigned char Options)
 
 static void DrawConnectionScreen()
 {
-  unsigned char const* pSwash;
-
-  switch (CurrentPage[PAGE_TYPE_IDLE])
-  {
-  case RadioOnWithPairingInfoPage:
-    pSwash = pBootPageConnectionSwash;
-    break;
-  case RadioOnWithoutPairingInfoPage:
-    pSwash = pBootPagePairingSwash;
-    break;
-  case BluetoothOffPage:
-    pSwash = pBootPageBluetoothOffSwash;
-    break;
-  default:
-    pSwash = pBootPageUnknownSwash;
-    break;
-  }
-
-  FillMyBuffer(WATCH_DRAWN_IDLE_BUFFER_ROWS, PHONE_IDLE_BUFFER_ROWS, 0x00);
-  CopyRowsIntoMyBuffer(pSwash, WATCH_DRAWN_IDLE_BUFFER_ROWS + 1, 32);
-
-  /* local bluetooth address */
-  gRow = 65;
-  gColumn = 0;
-  gBitColumnMask = BIT4;
-  SetFont(MetaWatch7);
-  WriteFontString(GetLocalBluetoothAddressString());
-
-  /* add the firmware version */
-  gRow = 75;
-  gColumn = 0;
-  gBitColumnMask = BIT4;
-  DrawVersionInfo(10);
-  SendMyBufferToLcd(WATCH_DRAWN_IDLE_BUFFER_ROWS, PHONE_IDLE_BUFFER_ROWS);
+//  unsigned char const* pSwash;
+//
+//  switch (CurrentPage[PAGE_TYPE_IDLE])
+//  {
+//  case RadioOnWithPairingInfoPage:
+//    pSwash = pBootPageConnectionSwash;
+//    break;
+//  case RadioOnWithoutPairingInfoPage:
+//    pSwash = pBootPagePairingSwash;
+//    break;
+//  case BluetoothOffPage:
+//    pSwash = pBootPageBluetoothOffSwash;
+//    break;
+//  default:
+//    pSwash = pBootPageUnknownSwash;
+//    break;
+//  }
+//
+//  FillMyBuffer(WATCH_DRAWN_IDLE_BUFFER_ROWS, PHONE_IDLE_BUFFER_ROWS, 0x00);
+//  CopyRowsIntoMyBuffer(pSwash, WATCH_DRAWN_IDLE_BUFFER_ROWS + 1, 32);
+//
+//  /* local bluetooth address */
+//  gRow = 65;
+//  gColumn = 0;
+//  gBitColumnMask = BIT4;
+//  SetFont(MetaWatch7);
+//  WriteFontString(GetLocalBluetoothAddressString());
+//
+//  /* add the firmware version */
+//  gRow = 75;
+//  gColumn = 0;
+//  gBitColumnMask = BIT4;
+//  DrawVersionInfo(10);
+//  SendMyBufferToLcd(WATCH_DRAWN_IDLE_BUFFER_ROWS, PHONE_IDLE_BUFFER_ROWS);
 }
 
 static void DrawMenu1(void)
@@ -1425,28 +1425,31 @@ static void DrawDateTime(unsigned char OnceConnected)
   msd = Hour / 10;
   lsd = Hour % 10;
 
+  int actualDrawnBufferRows = WATCH_DRAWN_IDLE_BUFFER_ROWS;
+  if (!QueryPhoneConnected()) actualDrawnBufferRows = 96;
+
   // clean date&time area
-  FillMyBuffer(STARTING_ROW, WATCH_DRAWN_IDLE_BUFFER_ROWS, 0x00);
+  FillMyBuffer(STARTING_ROW, actualDrawnBufferRows, 0x00);
 
-  if ( DisplayDisconnectWarning && (!QueryPhoneConnected()) )
-  {
-    CopyColumnsIntoMyBuffer(pPhoneDisconnectedIdlePageIcon,
-                            10,
-                            IDLE_PAGE_ICON_SIZE_IN_ROWS,
-                            1,
-                            IDLE_PAGE_ICON_SIZE_IN_COLS);
-
-
-    SetFont(MetaWatch16);
-
-    gColumn = 3;
-    gBitColumnMask = BIT4;
-    gRow = 11;
-    WriteFontString("Link Lost");
-
-  }
-  else
-  {
+//  if ( DisplayDisconnectWarning && (!QueryPhoneConnected()) )
+//  {
+//    CopyColumnsIntoMyBuffer(pPhoneDisconnectedIdlePageIcon,
+//                            10,
+//                            IDLE_PAGE_ICON_SIZE_IN_ROWS,
+//                            1,
+//                            IDLE_PAGE_ICON_SIZE_IN_COLS);
+//
+//
+//    SetFont(MetaWatch16);
+//
+//    gColumn = 3;
+//    gBitColumnMask = BIT4;
+//    gRow = 11;
+//    WriteFontString("Link Lost");
+//
+//  }
+//  else
+//  {
 
     gRow = 10;
     if ( nvDisplaySeconds )
@@ -1503,7 +1506,7 @@ static void DrawDateTime(unsigned char OnceConnected)
 
     if ( GetTimeFormat() == TWELVE_HOUR ) DisplayAmPm();
 
-  }
+//  }
 
   SetFont(StatusIcons);
   gRow = 2;
@@ -1560,12 +1563,23 @@ static void DrawDateTime(unsigned char OnceConnected)
 
   DisplayDate();
 
+  //if no connection, display connection warning prominently *full time*
+  if (!QueryPhoneConnected()) {
+//    CopyColumnsIntoMyBuffer(pPhoneDisconnectedIdlePageIcon, 87, IDLE_PAGE_ICON_SIZE_IN_ROWS, 1, IDLE_PAGE_ICON_SIZE_IN_COLS);
+    SetFont(MetaWatch16);
+
+    gRow = 72;
+    gColumn = 2;
+    gBitColumnMask = BIT6;
+    WriteFontString("Link Lost");
+  }
+
   // Invert the clock (because it looks good!)
   if ( QueryInvertClock() )
     {
     int row=0;
     int col=0;
-    for( ; row < NUM_LCD_ROWS && row < WATCH_DRAWN_IDLE_BUFFER_ROWS; row++)
+    for( ; row < NUM_LCD_ROWS && row < actualDrawnBufferRows; row++)
     {
       for(col = 0; col < NUM_LCD_COL_BYTES; col++)
       {
@@ -1574,7 +1588,7 @@ static void DrawDateTime(unsigned char OnceConnected)
     }
   }
 
-  SendMyBufferToLcd(STARTING_ROW, WATCH_DRAWN_IDLE_BUFFER_ROWS);
+  SendMyBufferToLcd(STARTING_ROW, actualDrawnBufferRows );
 }
 
 static void DisplayAmPm(void)

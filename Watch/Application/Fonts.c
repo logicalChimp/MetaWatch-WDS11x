@@ -218,6 +218,7 @@ void GetCharacterBitmap(unsigned char Character,unsigned int * pBitmap)
       
     case StatusIcons:
       pBitmap[row] = (unsigned int)StatusIconsTable[index][row];
+      break;
 
     default:
       break;
