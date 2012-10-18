@@ -151,6 +151,8 @@ static void DisplayDate(void);
 
 static tLcdLine pMyBuffer[NUM_LCD_ROWS];
 
+const float sine_table[91] = {0, 0.01, 0.03, 0.05, 0.06, 0.08, 0.1, 0.12, 0.13, 0.15, 0.17, 0.19, 0.2, 0.22, 0.24, 0.26, 0.27, 0.29, 0.31, 0.33, 0.34, 0.36, 0.38, 0.4, 0.41, 0.43, 0.45, 0.47, 0.48, 0.5, 0.52, 0.54, 0.55, 0.57, 0.59, 0.61, 0.62, 0.64, 0.66, 0.68, 0.69, 0.71, 0.73, 0.75, 0.76, 0.78, 0.8, 0.82, 0.83, 0.85, 0.87, 0.89, 0.9, 0.92, 0.94, 0.95, 0.97, 0.99, 1.01, 1.02, 1.04, 1.06, 1.08, 1.09, 1.11, 1.13, 1.15, 1.16, 1.18, 1.2, 1.22, 1.23, 1.25, 1.27, 1.29, 1.3, 1.32, 1.34, 1.36, 1.37, 1.39, 1.41, 1.43, 1.44, 1.46, 1.48, 1.5, 1.51, 1.53, 1.55, 1.57};
+
 /******************************************************************************/
 
 static unsigned char nvIdleBufferConfig;
@@ -1460,21 +1462,73 @@ static void DrawLine( int x0, int y0, int x1, int y1)
     }
 }
 
-static void DrawAnalogueTime(unsigned char OnceConnected) {
-	int Hour = RTCHOUR;
-	Hour %= 12;
-	if (Hour == 0) Hour = 12;
-
-	FillMyBuffer(0, 96, 0x00);
-	DrawLine(48,48,84,64);
-
-	unsigned char bits[8] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
-	int x=0;
-	for (; x<8; x++) {
-		int col = 6;
-		unsigned char bit = bits[x%8];
-		pMyBuffer[48+x].Data[col] |= bit;
+const unsigned char bits[8] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
+static void DrawTick(int x, int y, int w, int h) {
+	int y0 = y;
+	for (; y0<(y+h); y0++) {
+		int x0 = x;
+		for (; x0<(x+w); x0++) {
+			int col = x0/8;
+			unsigned char bit = bits[x0%8];
+			pMyBuffer[y0].Data[col] |= bit;
+		}
 	}
+}
+
+static float sin(int angle) {
+	int x = angle%360;
+	int y = x%90;
+
+	if (x <  90) return  sine_table[y];
+	if (x < 180) return  sine_table[90-y];
+	if (x < 270) return -sine_table[y];
+				 return -sine_table[90-y];
+}
+
+static float cos(int angle) {
+	return sin(angle+90);
+}
+
+static int RotatePoint(int x, int y, int angle) {
+	return x * cos(angle) + y * sin(angle);
+}
+
+static void DrawHand(int x, int y, int tOffset, int lOffset, int bOffset, int rOffset, int angle) {
+	int xLeft = RotatePoint(x+lOffset, y, angle);
+	int yLeft = RotatePoint(y, x+lOffset, angle);
+
+	int xTop = RotatePoint(x, y+tOffset, angle);
+	int yTop = RotatePoint(y+tOffset, x, angle);
+
+	int xRight = RotatePoint(x+rOffset, y, angle);
+	int yRight = RotatePoint(y, x+rOffset, angle);
+
+	int xBottom = RotatePoint(x, y+bOffset, angle);
+	int yBottom = RotatePoint(y+bOffset, x, angle);
+
+	DrawLine(xLeft,yLeft,xTop,yTop);
+	DrawLine(xTop,yTop,xRight,yRight);
+	DrawLine(xRight,yRight,xBottom,yBottom);
+	DrawLine(xBottom,yBottom,xLeft,yLeft);
+}
+
+static void DrawAnalogueTime(unsigned char OnceConnected) {
+	FillMyBuffer(0, 96, 0x00);
+	DrawTick(47, 10, 4, 3); //tick for 12
+	DrawTick(0, 47, 8, 4); //tick for 9
+	DrawTick(88, 47, 8, 4); //tick for 3
+	//no tick for 6 - overwritten by widget row
+
+	int hour = RTCHOUR;
+    int min = RTCMIN;
+
+    hour %= 12; //convert to 12-hour display for analogue
+	int hourAngle = (360.0/(12*60))*((hour*60)+min);
+	DrawHand(48, 48, -20, -5, -5, 5, hourAngle); //hour hand
+
+	int minAngle = (360/60) * min;
+	DrawHand(48, 48, -35, -3, -3, 3, minAngle); //minute hand
+
 	SendMyBufferToLcd(0, 96);
 }
 
