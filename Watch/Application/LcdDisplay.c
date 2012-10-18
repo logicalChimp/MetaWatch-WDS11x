@@ -102,6 +102,8 @@ static void ToggleSecondsHandler(unsigned char MsgOptions);
 static void ConnectionStateChangeHandler(tMessage *pMsg);
 
 /******************************************************************************/
+static void DrawAnalogueTime(unsigned char OnceConnected);
+static void DrawLine(int x0, int y0, int x1, int y1);
 static void DrawDateTime(unsigned char OnceConnected);
 static void DrawConnectionScreen(void);
 static void InitMyBuffer(void);
@@ -198,7 +200,6 @@ static const unsigned char ButtonEvent[PAGE_NUMBERS][BUTTON_NUMBERS][2] =
 };
 
 static unsigned char SplashTimeout;
-//static unsigned char DisplayDisconnectWarning = 0;
 
 static void ConfigureIdleUserInterfaceButtons(void);
 
@@ -1407,8 +1408,83 @@ static void DrawStatusIconCross(unsigned char bool)
 	}
 }
 
+static void DrawLine( int x0, int y0, int x1, int y1)
+{
+    int steep = abs(y1 - y0) > abs(x1 - x0);
+	int temp = 0;
+    if (steep) {
+    	temp = x0;
+    	x0 = y0;
+    	y0 = temp;
+
+    	temp = x1;
+    	x1 = y1;
+    	y1 = temp;
+    }
+    if (x0 > x1) {
+    	temp = x0;
+    	x0 = x1;
+    	x1 = temp;
+
+    	temp = y0;
+    	y0 = y1;
+    	y1 = temp;
+    }
+    int deltax = x1 - x0;
+    int deltay = abs(y1 - y0);
+    int error = deltax / 2;
+    int ystep;
+    int x = x0;
+    int y = y0;
+    if (y0 < y1) {
+    	ystep = 1;
+    } else {
+    	ystep = -1;
+    }
+	unsigned char bits[8] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
+    for (; x <= x1; x++) {
+        if (steep) {
+        	int col = y/8;
+        	int bit = bits[y%8];
+        	pMyBuffer[x].Data[col] |= bit;
+        } else {
+        	int col = x/8;
+        	int bit = bits[x%8];
+        	pMyBuffer[y].Data[col] |= bit;
+        }
+        error = error - deltay;
+        if (error < 0) {
+            y = y + ystep;
+            error = error + deltax;
+        }
+    }
+}
+
+static void DrawAnalogueTime(unsigned char OnceConnected) {
+	int Hour = RTCHOUR;
+	Hour %= 12;
+	if (Hour == 0) Hour = 12;
+
+	FillMyBuffer(0, 96, 0x00);
+	DrawLine(48,48,84,64);
+
+	unsigned char bits[8] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
+	int x=0;
+	for (; x<8; x++) {
+		int col = 6;
+		unsigned char bit = bits[x%8];
+		pMyBuffer[48+x].Data[col] |= bit;
+	}
+	SendMyBufferToLcd(0, 96);
+}
+
 static void DrawDateTime(unsigned char OnceConnected)
 {
+	if (nvDisplaySeconds) {
+		DrawAnalogueTime(OnceConnected);
+		return;
+	}
+
   unsigned char msd;
   unsigned char lsd;
 
@@ -1570,7 +1646,7 @@ static void DrawDateTime(unsigned char OnceConnected)
 
     gRow = 72;
     gColumn = 2;
-    gBitColumnMask = BIT6;
+	gBitColumnMask = BIT6;
     WriteFontString("Link Lost");
   }
 
