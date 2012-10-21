@@ -102,7 +102,8 @@ static void ToggleSecondsHandler(unsigned char MsgOptions);
 static void ConnectionStateChangeHandler(tMessage *pMsg);
 
 /******************************************************************************/
-static void DrawAnalogueTime(unsigned char OnceConnected);
+static void DrawDateTimeAnalogue(unsigned char OnceConnected);
+static void DrawDateTimeDigital(unsigned char OnceConnected);
 static void DrawLine(int x0, int y0, int x1, int y1);
 static void DrawDateTime(unsigned char OnceConnected);
 static void DrawConnectionScreen(void);
@@ -151,7 +152,7 @@ static void DisplayDate(void);
 
 static tLcdLine pMyBuffer[NUM_LCD_ROWS];
 
-const float sine_table[91] = {0, 0.01, 0.03, 0.05, 0.06, 0.08, 0.1, 0.12, 0.13, 0.15, 0.17, 0.19, 0.2, 0.22, 0.24, 0.26, 0.27, 0.29, 0.31, 0.33, 0.34, 0.36, 0.38, 0.4, 0.41, 0.43, 0.45, 0.47, 0.48, 0.5, 0.52, 0.54, 0.55, 0.57, 0.59, 0.61, 0.62, 0.64, 0.66, 0.68, 0.69, 0.71, 0.73, 0.75, 0.76, 0.78, 0.8, 0.82, 0.83, 0.85, 0.87, 0.89, 0.9, 0.92, 0.94, 0.95, 0.97, 0.99, 1.01, 1.02, 1.04, 1.06, 1.08, 1.09, 1.11, 1.13, 1.15, 1.16, 1.18, 1.2, 1.22, 1.23, 1.25, 1.27, 1.29, 1.3, 1.32, 1.34, 1.36, 1.37, 1.39, 1.41, 1.43, 1.44, 1.46, 1.48, 1.5, 1.51, 1.53, 1.55, 1.57};
+const float sine_table[91] = {0, 0.01, 0.03, 0.05, 0.06, 0.08, 0.1, 0.12, 0.13, 0.15, 0.17, 0.19, 0.2, 0.22, 0.24, 0.25, 0.27, 0.29, 0.3, 0.32, 0.34, 0.35, 0.37, 0.39, 0.4, 0.42, 0.43, 0.45, 0.46, 0.48, 0.49, 0.51, 0.52, 0.54, 0.55, 0.57, 0.58, 0.6, 0.61, 0.62, 0.64, 0.65, 0.66, 0.68, 0.69, 0.7, 0.71, 0.73, 0.74, 0.75, 0.76, 0.77, 0.78, 0.79, 0.8, 0.81, 0.82, 0.83, 0.84, 0.85, 0.86, 0.87, 0.88, 0.89, 0.89, 0.9, 0.91, 0.92, 0.92, 0.93, 0.93, 0.94, 0.95, 0.95, 0.96, 0.96, 0.97, 0.97, 0.97, 0.98, 0.98, 0.98, 0.99, 0.99, 0.99, 0.99, 0.99, 0.99, 0.99, 0.99, 1};
 
 /******************************************************************************/
 
@@ -163,6 +164,7 @@ static void SaveIdleBufferInvert(void);
 /******************************************************************************/
 
 unsigned char nvDisplaySeconds = 0;
+unsigned char nvDisplayAnalogueClock = 0;
 static void SaveDisplaySeconds(void);
 
 /******************************************************************************/
@@ -195,7 +197,7 @@ static const unsigned char ButtonEvent[PAGE_NUMBERS][BUTTON_NUMBERS][2] =
   {{ModifyTimeMsg, MODIFY_TIME_INCREMENT_MINUTE}, {ModifyTimeMsg, MODIFY_TIME_INCREMENT_DOW}, {MenuModeMsg, MENU_MODE_OPTION_PAGE1}, {ListPairedDevicesMsg, 0}, {ModifyTimeMsg, MODIFY_TIME_INCREMENT_HOUR}},
   {{MenuButtonMsg, MENU_BUTTON_OPTION_TOGGLE_BLUETOOTH}, {MenuModeMsg, MENU_MODE_OPTION_PAGE2}, {MenuButtonMsg, MENU_BUTTON_OPTION_EXIT}, {MenuButtonMsg, MENU_BUTTON_OPTION_TOGGLE_LINK_ALARM}, {MenuButtonMsg, MENU_BUTTON_OPTION_TOGGLE_DISCOVERABILITY}},
   {{MenuButtonMsg, MENU_BUTTON_OPTION_TOGGLE_RST_NMI_PIN}, {MenuModeMsg, MENU_MODE_OPTION_PAGE3}, {MenuButtonMsg, MENU_BUTTON_OPTION_EXIT}, {MenuButtonMsg, MENU_BUTTON_OPTION_TOGGLE_SECURE_SIMPLE_PAIRING}, {SoftwareResetMsg, 0}},
-  {{MenuButtonMsg, MENU_BUTTON_OPTION_TOGGLE_ACCEL}, {MenuButtonMsg, MENU_MODE_OPTION_PAGE1}, {MenuButtonMsg, MENU_BUTTON_OPTION_EXIT}, {MenuButtonMsg, MENU_BUTTON_OPTION_DISPLAY_SECONDS}, {MenuButtonMsg, MENU_BUTTON_OPTION_INVERT_DISPLAY}},
+  {{MenuButtonMsg, MENU_BUTTON_OPTION_TOGGLE_ACCEL}, {MenuButtonMsg, MENU_MODE_OPTION_PAGE1}, {MenuButtonMsg, MENU_BUTTON_OPTION_EXIT}, {MenuButtonMsg, MENU_BUTTON_OPTION_TOGGLE_CLOCK}, {MenuButtonMsg, MENU_BUTTON_OPTION_INVERT_DISPLAY}},
   {{BarCode, 0}, {0, 0}, {MenuModeMsg, MENU_MODE_OPTION_PAGE1}, {IdleUpdate, IDLE_FULL_UPDATE}, {WatchStatusMsg, 0}},
   {{BarCode, 0}, {0, 0}, {MenuModeMsg, MENU_MODE_OPTION_PAGE1}, {ListPairedDevicesMsg, 0}, {IdleUpdate, IDLE_FULL_UPDATE}},
   {{IdleUpdate, IDLE_FULL_UPDATE}, {0, 0}, {MenuModeMsg, MENU_MODE_OPTION_PAGE1}, {ListPairedDevicesMsg, 0}, {WatchStatusMsg, 0}}
@@ -723,6 +725,11 @@ static void MenuButtonHandler(unsigned char MsgOptions)
     MenuModeHandler(MENU_MODE_OPTION_UPDATE_CURRENT_PAGE);
     break;
 
+  case MENU_BUTTON_OPTION_TOGGLE_CLOCK:
+	ToggleClockType();
+    MenuModeHandler(MENU_MODE_OPTION_UPDATE_CURRENT_PAGE);
+    break;
+
   case MENU_BUTTON_OPTION_INVERT_DISPLAY:
     nvIdleBufferInvert = (nvIdleBufferInvert + 1) % 4;
     MenuModeHandler(MENU_MODE_OPTION_UPDATE_CURRENT_PAGE);
@@ -836,6 +843,11 @@ static void ToggleSecondsHandler(unsigned char Options)
   {
     IdleUpdateHandler(DATE_TIME_ONLY);
   }
+}
+
+static void ToggleClockType() {
+	nvDisplayAnalogueClock = !nvDisplayAnalogueClock;
+    IdleUpdateHandler(DATE_TIME_ONLY);
 }
 
 static void DrawConnectionScreen()
@@ -989,13 +1001,20 @@ static void DrawMenu3(void)
                           BUTTON_ICON_SIZE_IN_COLUMNS);
 #endif
 
-  pIcon = nvDisplaySeconds ? pSecondsOnMenuIcon : pSecondsOffMenuIcon;
 
-  CopyColumnsIntoMyBuffer(pIcon,
-                          BUTTON_ICON_B_E_ROW,
-                          BUTTON_ICON_SIZE_IN_ROWS,
-                          LEFT_BUTTON_COLUMN,
-                          BUTTON_ICON_SIZE_IN_COLUMNS);
+	SetFont(MetaWatch7);
+	gRow = 32;
+	gColumn = 0;
+	gBitColumnMask = BIT1;
+	(nvDisplayAnalogueClock) ? WriteFontString("Analogue") : WriteFontString("Digital");
+
+//  pIcon = nvDisplaySeconds ? pSecondsOnMenuIcon : pSecondsOffMenuIcon;
+//
+//  CopyColumnsIntoMyBuffer(pIcon,
+//                          BUTTON_ICON_B_E_ROW,
+//                          BUTTON_ICON_SIZE_IN_ROWS,
+//                          LEFT_BUTTON_COLUMN,
+//                          BUTTON_ICON_SIZE_IN_COLUMNS);
 }
 
 static void DrawCommonMenuIcons(void)
@@ -1410,6 +1429,7 @@ static void DrawStatusIconCross(unsigned char bool)
 	}
 }
 
+const unsigned char bits[8] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
 static void DrawLine( int x0, int y0, int x1, int y1)
 {
     int steep = abs(y1 - y0) > abs(x1 - x0);
@@ -1443,7 +1463,6 @@ static void DrawLine( int x0, int y0, int x1, int y1)
     } else {
     	ystep = -1;
     }
-	unsigned char bits[8] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
     for (; x <= x1; x++) {
         if (steep) {
         	int col = y/8;
@@ -1462,7 +1481,6 @@ static void DrawLine( int x0, int y0, int x1, int y1)
     }
 }
 
-const unsigned char bits[8] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
 static void DrawTick(int x, int y, int w, int h) {
 	int y0 = y;
 	for (; y0<(y+h); y0++) {
@@ -1489,22 +1507,26 @@ static float cos(int angle) {
 	return sin(angle+90);
 }
 
-static int RotatePoint(int x, int y, int angle) {
-	return x * cos(angle) + y * sin(angle);
+static int RotatePointX(int x, int y, int angle) {
+	return x * cos(angle) - y * sin(angle);
+}
+
+static int RotatePointY(int x, int y, int angle) {
+	return x * sin(angle) + y * cos(angle);
 }
 
 static void DrawHand(int x, int y, int tOffset, int lOffset, int bOffset, int rOffset, int angle) {
-	int xLeft = RotatePoint(x+lOffset, y, angle);
-	int yLeft = RotatePoint(y, x+lOffset, angle);
+	int xLeft = RotatePointX(lOffset-x, y-y, angle) + x;
+	int yLeft = RotatePointY(lOffset-x, y-y, angle) + y;
 
-	int xTop = RotatePoint(x, y+tOffset, angle);
-	int yTop = RotatePoint(y+tOffset, x, angle);
+	int xTop = RotatePointX(x-x, tOffset-y, angle) + x;
+	int yTop = RotatePointY(x-x, tOffset-y, angle) + y;
 
-	int xRight = RotatePoint(x+rOffset, y, angle);
-	int yRight = RotatePoint(y, x+rOffset, angle);
+	int xRight = RotatePointX(rOffset-x, y-y, angle) + x;
+	int yRight = RotatePointY(rOffset-x, y-y, angle) + y;
 
-	int xBottom = RotatePoint(x, y+bOffset, angle);
-	int yBottom = RotatePoint(y+bOffset, x, angle);
+	int xBottom = RotatePointX(x-x, bOffset-y, angle) + x;
+	int yBottom = RotatePointY(x-x, bOffset-y, angle) + y;
 
 	DrawLine(xLeft,yLeft,xTop,yTop);
 	DrawLine(xTop,yTop,xRight,yRight);
@@ -1512,7 +1534,7 @@ static void DrawHand(int x, int y, int tOffset, int lOffset, int bOffset, int rO
 	DrawLine(xBottom,yBottom,xLeft,yLeft);
 }
 
-static void DrawAnalogueTime(unsigned char OnceConnected) {
+static void DrawDateTimeAnalogue(unsigned char OnceConnected) {
 	FillMyBuffer(0, 96, 0x00);
 	DrawTick(47, 10, 4, 3); //tick for 12
 	DrawTick(0, 47, 8, 4); //tick for 9
@@ -1524,21 +1546,82 @@ static void DrawAnalogueTime(unsigned char OnceConnected) {
 
     hour %= 12; //convert to 12-hour display for analogue
 	int hourAngle = (360.0/(12*60))*((hour*60)+min);
-	DrawHand(48, 48, -20, -5, -5, 5, hourAngle); //hour hand
+	DrawHand(48, 48, 28, 43, 53, 53, hourAngle); //hour hand
 
 	int minAngle = (360/60) * min;
-	DrawHand(48, 48, -35, -3, -3, 3, minAngle); //minute hand
+	DrawHand(48, 48, 13, 45, 51, 51, minAngle); //minute hand
+
+	DrawStatusIcons(OnceConnected);
+	DisplayDate();
 
 	SendMyBufferToLcd(0, 96);
 }
 
-static void DrawDateTime(unsigned char OnceConnected)
-{
-	if (nvDisplaySeconds) {
-		DrawAnalogueTime(OnceConnected);
-		return;
+static void DrawStatusIcons(unsigned char OnceConnected) {
+	SetFont(StatusIcons);
+	gRow = 2;
+
+	if ( OnceConnected )
+	{
+		char bluetooth = QueryBluetoothOn();
+		char connected = QueryPhoneConnected();
+
+		if ( (!bluetooth) || (bluetooth&&connected) ) {
+			gColumn = 8;
+			gBitColumnMask = BIT5;
+		}
+		else
+		{
+			gColumn = 8;
+			gBitColumnMask = BIT1;
+		}
+
+		DrawStatusIconCross( bluetooth );
+		WriteFontCharacter(STATUS_ICON_BLUETOOTH);
+
+		if (bluetooth) {
+			AdvanceBitColumnMask(1);
+			DrawStatusIconCross( connected );
+			WriteFontCharacter(STATUS_ICON_PHONE);
+		}
 	}
 
+	gColumn = 10;
+	gBitColumnMask = BIT0;
+	if ( QueryBatteryCharging() )
+	{
+		WriteFontCharacter(STATUS_ICON_SPARK);
+	}
+
+	unsigned int bV = ReadBatterySenseAverage();
+
+	gColumn = 10;
+	gBitColumnMask = BIT6;
+
+	if ( bV < 3500 )
+	{
+		WriteFontCharacter(STATUS_ICON_BATTERY_EMPTY);
+	}
+	else if ( bV > 4000 )
+	{
+		WriteFontCharacter(STATUS_ICON_BATTERY_FULL);
+	}
+	else
+	{
+		WriteFontCharacter(STATUS_ICON_BATTERY_HALF);
+	}
+}
+
+static void DrawDateTime(unsigned char OnceConnected)
+{
+	if (nvDisplayAnalogueClock) {
+		DrawDateTimeAnalogue(OnceConnected);
+	} else {
+		DrawDateTimeDigital(OnceConnected);
+	}
+}
+
+static void DrawDateTimeDigital(unsigned char OnceConnected) {
   unsigned char msd;
   unsigned char lsd;
 
@@ -1638,58 +1721,60 @@ static void DrawDateTime(unsigned char OnceConnected)
 
 //  }
 
-  SetFont(StatusIcons);
-  gRow = 2;
+    DrawStatusIcons(OnceConnected);
 
-  if ( OnceConnected )
-  {
-    char bluetooth = QueryBluetoothOn();
-    char connected = QueryPhoneConnected();
-
-    if ( (!bluetooth) || (bluetooth&&connected) ) {
-      gColumn = 8;
-      gBitColumnMask = BIT5;
-    }
-    else
-    {
-      gColumn = 8;
-      gBitColumnMask = BIT1;
-    }
-
-    DrawStatusIconCross( bluetooth );
-    WriteFontCharacter(STATUS_ICON_BLUETOOTH);
-
-    if (bluetooth) {
-      AdvanceBitColumnMask(1);
-      DrawStatusIconCross( connected );
-      WriteFontCharacter(STATUS_ICON_PHONE);
-    }
-  }
-
-	gColumn = 10;
-	gBitColumnMask = BIT0;
-	if ( QueryBatteryCharging() )
-	{
-		WriteFontCharacter(STATUS_ICON_SPARK);
-	}
-
-	unsigned int bV = ReadBatterySenseAverage();
-
-	gColumn = 10;
-	gBitColumnMask = BIT6;
-
-	if ( bV < 3500 )
-	{
-	  WriteFontCharacter(STATUS_ICON_BATTERY_EMPTY);
-	}
-	else if ( bV > 4000 )
-	{
-		WriteFontCharacter(STATUS_ICON_BATTERY_FULL);
-	}
-	else
-	{
-		WriteFontCharacter(STATUS_ICON_BATTERY_HALF);
-	}
+//  SetFont(StatusIcons);
+//  gRow = 2;
+//
+//  if ( OnceConnected )
+//  {
+//    char bluetooth = QueryBluetoothOn();
+//    char connected = QueryPhoneConnected();
+//
+//    if ( (!bluetooth) || (bluetooth&&connected) ) {
+//      gColumn = 8;
+//      gBitColumnMask = BIT5;
+//    }
+//    else
+//    {
+//      gColumn = 8;
+//      gBitColumnMask = BIT1;
+//    }
+//
+//    DrawStatusIconCross( bluetooth );
+//    WriteFontCharacter(STATUS_ICON_BLUETOOTH);
+//
+//    if (bluetooth) {
+//      AdvanceBitColumnMask(1);
+//      DrawStatusIconCross( connected );
+//      WriteFontCharacter(STATUS_ICON_PHONE);
+//    }
+//  }
+//
+//	gColumn = 10;
+//	gBitColumnMask = BIT0;
+//	if ( QueryBatteryCharging() )
+//	{
+//		WriteFontCharacter(STATUS_ICON_SPARK);
+//	}
+//
+//	unsigned int bV = ReadBatterySenseAverage();
+//
+//	gColumn = 10;
+//	gBitColumnMask = BIT6;
+//
+//	if ( bV < 3500 )
+//	{
+//	  WriteFontCharacter(STATUS_ICON_BATTERY_EMPTY);
+//	}
+//	else if ( bV > 4000 )
+//	{
+//		WriteFontCharacter(STATUS_ICON_BATTERY_FULL);
+//	}
+//	else
+//	{
+//		WriteFontCharacter(STATUS_ICON_BATTERY_HALF);
+//	}
 
   DisplayDate();
 
