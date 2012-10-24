@@ -552,6 +552,7 @@ typedef struct
 #define MENU_MODE_OPTION_PAGE2               ( 0x02 )
 #define MENU_MODE_OPTION_PAGE3               ( 0x03 )
 #define MENU_MODE_OPTION_UPDATE_CURRENT_PAGE ( 0x04 )
+#define MENU_MODE_OPTION_PAGE4				 ( 0x05 )
 
 
 /* Menu Button Message Options */
@@ -577,6 +578,9 @@ typedef struct
 
 #define TOGGLE_SECONDS_OPTIONS_UPDATE_IDLE      ( 0x01 )
 #define TOGGLE_SECONDS_OPTIONS_DONT_UPDATE_IDLE ( 0x02 )
+
+#define TOGGLE_CLOCK_OPTIONS_UPDATE_IDLE      ( 0x01 )
+#define TOGGLE_CLOCK_OPTIONS_DONT_UPDATE_IDLE ( 0x02 )
 
 /******************************************************************************/
 
@@ -696,6 +700,9 @@ typedef struct
 #define CONFIGURE_DISPLAY_OPTION_DISPLAY_SECONDS      ( 2 )
 #define CONFIGURE_DISPLAY_OPTION_DONT_INVERT_DISPLAY  ( 3 )
 #define CONFIGURE_DISPLAY_OPTION_INVERT_DISPLAY       ( 4 )
+#define CONFIGURE_DISPLAY_OPTION_DISPLAY_ANALOGUE     ( 5 )
+#define CONFIGURE_DISPLAY_OPTION_DONT_DISPLAY_ANALOGUE ( 6 )
+
 /******************************************************************************/
 typedef struct
 {

@@ -88,6 +88,10 @@ void InitializeIdleBufferInvert(void);
 /*! Initialize flash/ram value for whether or not to display seconds */
 void InitializeDisplaySeconds(void);
 
+/*! Initialize flash/ram value for whether or not to display time using an analogue clock (defaults to digital) */
+void InitializeClockType(void);
+
+
 /*! Called from RTC one second interrupt
  *
  * \return 1 if lpm should be exited, 0 otherwise

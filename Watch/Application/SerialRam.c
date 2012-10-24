@@ -36,6 +36,7 @@
 #include "LcdDisplay.h"
 #include "Utilities.h"
 #include "Adc.h"
+#include "Wrapper.h"
 
 /******************************************************************************/
 

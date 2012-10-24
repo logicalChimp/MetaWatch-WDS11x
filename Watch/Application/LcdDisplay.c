@@ -68,7 +68,7 @@
 #define PAGE_TYPE_IDLE     (0)
 #define PAGE_TYPE_MENU     (1)
 #define PAGE_TYPE_INFO     (2)
-#define PAGE_NUMBERS       (10)
+#define PAGE_NUMBERS       (11)
 
 #define BUTTON_NUMBERS     (5)
 #define BTN_MSG            (0)
@@ -102,7 +102,7 @@ static void ToggleSecondsHandler(unsigned char MsgOptions);
 static void ConnectionStateChangeHandler(tMessage *pMsg);
 
 /******************************************************************************/
-static void ToggleClockType();
+static void ToggleClockType(unsigned char Options);
 static void DrawStatusIcons(unsigned char OnceConnected);
 static void DrawDateTimeAnalogue(unsigned char OnceConnected);
 static void DrawDateTimeDigital(unsigned char OnceConnected);
@@ -120,6 +120,7 @@ static void DrawVersionInfo(unsigned char RowHeight);
 static void DrawMenu1(void);
 static void DrawMenu2(void);
 static void DrawMenu3(void);
+static void DrawMenu4(void);
 static void DrawCommonMenuIcons(void);
 
 static void FillMyBuffer(unsigned char StartingRow,
@@ -168,6 +169,7 @@ static void SaveIdleBufferInvert(void);
 unsigned char nvDisplaySeconds = 0;
 unsigned char nvDisplayAnalogueClock = 0;
 static void SaveDisplaySeconds(void);
+static void SaveClockType(void);
 
 /******************************************************************************/
 
@@ -185,7 +187,8 @@ typedef enum
   Menu3Page,
   ListPairedDevicesPage,
   WatchStatusPage,
-  QrCodePage
+  QrCodePage,
+  Menu4Page
 } eIdleModePage;
 
 static eIdleModePage CurrentPage[PAGE_TYPE_NUM];
@@ -199,10 +202,11 @@ static const unsigned char ButtonEvent[PAGE_NUMBERS][BUTTON_NUMBERS][2] =
   {{ModifyTimeMsg, MODIFY_TIME_INCREMENT_MINUTE}, {ModifyTimeMsg, MODIFY_TIME_INCREMENT_DOW}, {MenuModeMsg, MENU_MODE_OPTION_PAGE1}, {ListPairedDevicesMsg, 0}, {ModifyTimeMsg, MODIFY_TIME_INCREMENT_HOUR}},
   {{MenuButtonMsg, MENU_BUTTON_OPTION_TOGGLE_BLUETOOTH}, {MenuModeMsg, MENU_MODE_OPTION_PAGE2}, {MenuButtonMsg, MENU_BUTTON_OPTION_EXIT}, {MenuButtonMsg, MENU_BUTTON_OPTION_TOGGLE_LINK_ALARM}, {MenuButtonMsg, MENU_BUTTON_OPTION_TOGGLE_DISCOVERABILITY}},
   {{MenuButtonMsg, MENU_BUTTON_OPTION_TOGGLE_RST_NMI_PIN}, {MenuModeMsg, MENU_MODE_OPTION_PAGE3}, {MenuButtonMsg, MENU_BUTTON_OPTION_EXIT}, {MenuButtonMsg, MENU_BUTTON_OPTION_TOGGLE_SECURE_SIMPLE_PAIRING}, {SoftwareResetMsg, 0}},
-  {{MenuButtonMsg, MENU_BUTTON_OPTION_TOGGLE_ACCEL}, {MenuButtonMsg, MENU_MODE_OPTION_PAGE1}, {MenuButtonMsg, MENU_BUTTON_OPTION_EXIT}, {MenuButtonMsg, MENU_BUTTON_OPTION_TOGGLE_CLOCK}, {MenuButtonMsg, MENU_BUTTON_OPTION_INVERT_DISPLAY}},
+  {{MenuButtonMsg, MENU_BUTTON_OPTION_TOGGLE_ACCEL}, {MenuModeMsg, MENU_MODE_OPTION_PAGE4}, {MenuButtonMsg, MENU_BUTTON_OPTION_EXIT}, {MenuButtonMsg, MENU_BUTTON_OPTION_DISPLAY_SECONDS}, {MenuButtonMsg, MENU_BUTTON_OPTION_INVERT_DISPLAY}},
   {{BarCode, 0}, {0, 0}, {MenuModeMsg, MENU_MODE_OPTION_PAGE1}, {IdleUpdate, IDLE_FULL_UPDATE}, {WatchStatusMsg, 0}},
   {{BarCode, 0}, {0, 0}, {MenuModeMsg, MENU_MODE_OPTION_PAGE1}, {ListPairedDevicesMsg, 0}, {IdleUpdate, IDLE_FULL_UPDATE}},
-  {{IdleUpdate, IDLE_FULL_UPDATE}, {0, 0}, {MenuModeMsg, MENU_MODE_OPTION_PAGE1}, {ListPairedDevicesMsg, 0}, {WatchStatusMsg, 0}}
+  {{IdleUpdate, IDLE_FULL_UPDATE}, {0, 0}, {MenuModeMsg, MENU_MODE_OPTION_PAGE1}, {ListPairedDevicesMsg, 0}, {WatchStatusMsg, 0}},
+  {{MenuButtonMsg, MENU_BUTTON_OPTION_TOGGLE_CLOCK}, {MenuModeMsg, MENU_MODE_OPTION_PAGE1}, {MenuButtonMsg, MENU_BUTTON_OPTION_EXIT}, {0, 0}, {0, 0}}
 };
 
 static unsigned char SplashTimeout;
@@ -276,6 +280,7 @@ static void DisplayTask(void *pvParameters)
   InitializeIdleBufferConfig();
   InitializeIdleBufferInvert();
   InitializeDisplaySeconds();
+  InitializeClockType();
   InitializeLinkAlarmEnable();
   InitializeModeTimeouts();
   InitializeTimeFormat();
@@ -604,7 +609,7 @@ static void MenuModeHandler(unsigned char MsgOptions)
   StopDisplayTimer();
 
   /* draw entire region */
-  FillMyBuffer(STARTING_ROW,PHONE_IDLE_BUFFER_ROWS,0x00);
+  FillMyBuffer(STARTING_ROW,WATCH_DRAWN_IDLE_BUFFER_ROWS+PHONE_IDLE_BUFFER_ROWS,0x00);
   PageType = PAGE_TYPE_MENU;
   
   switch (MsgOptions)
@@ -627,6 +632,12 @@ static void MenuModeHandler(unsigned char MsgOptions)
     ConfigureIdleUserInterfaceButtons();
     break;
 
+  case MENU_MODE_OPTION_PAGE4:
+	DrawMenu4();
+	CurrentPage[PAGE_TYPE_MENU] = Menu4Page;
+	ConfigureIdleUserInterfaceButtons();
+	break;
+
   case MENU_MODE_OPTION_UPDATE_CURRENT_PAGE:
 
   default:
@@ -640,6 +651,9 @@ static void MenuModeHandler(unsigned char MsgOptions)
       break;
     case Menu3Page:
       DrawMenu3();
+      break;
+    case Menu4Page:
+      DrawMenu4();
       break;
     default:
       PrintString("Menu Mode Screen Selection Error\r\n");
@@ -692,6 +706,7 @@ static void MenuButtonHandler(unsigned char MsgOptions)
     SaveRstNmiConfiguration();
     SaveIdleBufferInvert();
     SaveDisplaySeconds();
+    SaveClockType();
 
     /* go back to the idle screen */
     PageType = PAGE_TYPE_IDLE;
@@ -728,7 +743,7 @@ static void MenuButtonHandler(unsigned char MsgOptions)
     break;
 
   case MENU_BUTTON_OPTION_TOGGLE_CLOCK:
-	ToggleClockType();
+	ToggleClockType(TOGGLE_CLOCK_OPTIONS_DONT_UPDATE_IDLE);
     MenuModeHandler(MENU_MODE_OPTION_UPDATE_CURRENT_PAGE);
     break;
 
@@ -847,9 +862,11 @@ static void ToggleSecondsHandler(unsigned char Options)
   }
 }
 
-static void ToggleClockType() {
+static void ToggleClockType(unsigned char Options) {
 	nvDisplayAnalogueClock = !nvDisplayAnalogueClock;
-    IdleUpdateHandler(DATE_TIME_ONLY);
+
+	if ( Options == TOGGLE_CLOCK_OPTIONS_UPDATE_IDLE )
+		IdleUpdateHandler(DATE_TIME_ONLY);
 }
 
 static void DrawConnectionScreen()
@@ -1004,19 +1021,26 @@ static void DrawMenu3(void)
 #endif
 
 
-	SetFont(MetaWatch7);
-	gRow = 32;
-	gColumn = 0;
-	gBitColumnMask = BIT1;
-	(nvDisplayAnalogueClock) ? WriteFontString("Analogue") : WriteFontString("Digital");
+  pIcon = nvDisplaySeconds ? pSecondsOnMenuIcon : pSecondsOffMenuIcon;
 
-//  pIcon = nvDisplaySeconds ? pSecondsOnMenuIcon : pSecondsOffMenuIcon;
-//
-//  CopyColumnsIntoMyBuffer(pIcon,
-//                          BUTTON_ICON_B_E_ROW,
-//                          BUTTON_ICON_SIZE_IN_ROWS,
-//                          LEFT_BUTTON_COLUMN,
-//                          BUTTON_ICON_SIZE_IN_COLUMNS);
+  CopyColumnsIntoMyBuffer(pIcon,
+                          BUTTON_ICON_B_E_ROW,
+                          BUTTON_ICON_SIZE_IN_ROWS,
+                          LEFT_BUTTON_COLUMN,
+                          BUTTON_ICON_SIZE_IN_COLUMNS);
+}
+
+static void DrawMenu4(void) {
+	SetFont(MetaWatch7);
+	gRow = 10;
+	gColumn = 6;
+	gBitColumnMask = BIT1;
+	if (nvDisplayAnalogueClock == 0) {
+		WriteFontString("Digital");
+	} else {
+		WriteFontString("Analogue");
+	}
+
 }
 
 static void DrawCommonMenuIcons(void)
@@ -1256,6 +1280,12 @@ static void ConfigureDisplayHandler(tMessage* pMsg)
   case CONFIGURE_DISPLAY_OPTION_DISPLAY_SECONDS:
     nvDisplaySeconds = 0x01;
     break;
+  case CONFIGURE_DISPLAY_OPTION_DONT_DISPLAY_ANALOGUE:
+	nvDisplayAnalogueClock = 0x00;
+	break;
+  case CONFIGURE_DISPLAY_OPTION_DISPLAY_ANALOGUE:
+	nvDisplayAnalogueClock = 0x01;
+	break;
   case CONFIGURE_DISPLAY_OPTION_DONT_INVERT_DISPLAY:
     if(QueryInvertDisplay() == NORMAL_DISPLAY) 
     {
@@ -1434,6 +1464,10 @@ static void DrawStatusIconCross(unsigned char bool)
 const unsigned char bits[8] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
 static void DrawLine( int x0, int y0, int x1, int y1)
 {
+	//fudge fix for clock areas being 96x64 - multiple all x-axis values by 1.5 to fill display
+	x0 = x0*1.5;
+	x1 = x1*1.5;
+
     int steep = abs(y1 - y0) > abs(x1 - x0);
 	int temp = 0;
     if (steep) {
@@ -1538,10 +1572,10 @@ static void DrawHand(int x, int y, int tOffset, int lOffset, int bOffset, int rO
 
 static void DrawDateTimeAnalogue(unsigned char OnceConnected) {
 	FillMyBuffer(0, 96, 0x00);
-	DrawTick(47, 10, 4, 3); //tick for 12
-	DrawTick(0, 47, 8, 4); //tick for 9
-	DrawTick(88, 47, 8, 4); //tick for 3
-	//no tick for 6 - overwritten by widget row
+	DrawTick(46, 10, 4, 4); //tick for 12
+	DrawTick(0, 30, 6, 4); //tick for 9
+	DrawTick(90, 30, 6, 4); //tick for 3
+	DrawTick(46, 60, 4, 4); //tick for 6
 
 	int hour = RTCHOUR;
     int min = RTCMIN;
@@ -1550,15 +1584,15 @@ static void DrawDateTimeAnalogue(unsigned char OnceConnected) {
     if (hour == 0) hour = 12;
     hour %= 12; //convert to 12-hour display for analogue
 	int hourAngle = (360.0/(12*60))*((hour*60)+min);
-	DrawHand(48, 48, 28, 43, 53, 53, hourAngle); //hour hand
+	DrawHand(32, 32, 20, 29, 35, 35, hourAngle); //hour hand
 
 	int minAngle = (360/60) * min;
-	DrawHand(48, 48, 13, 45, 51, 51, minAngle); //minute hand
+	DrawHand(32, 32, 14, 29, 35, 35, minAngle); //minute hand
 
 	DrawStatusIcons(OnceConnected);
 	DisplayDate();
 
-	SendMyBufferToLcd(0, 96);
+	SendMyBufferToLcd(0, 63);
 }
 
 static void DrawStatusIcons(unsigned char OnceConnected) {
@@ -2047,6 +2081,14 @@ void InitializeDisplaySeconds(void)
                  &nvDisplaySeconds);
 }
 
+void InitializeClockType(void)
+{
+	nvDisplayAnalogueClock = 0;
+	OsalNvItemInit( NVID_CLOCK_TYPE,
+					sizeof(nvDisplayAnalogueClock),
+					&nvDisplayAnalogueClock);
+}
+
 #if 0
 static void SaveIdleBufferConfig(void)
 {
@@ -2073,9 +2115,21 @@ static void SaveDisplaySeconds(void)
               &nvDisplaySeconds);
 }
 
+static void SaveClockType(void)
+{
+  OsalNvWrite(NVID_CLOCK_TYPE,
+              NV_ZERO_OFFSET,
+              sizeof(nvDisplayAnalogueClock),
+              &nvDisplayAnalogueClock);
+}
+
 unsigned char QueryDisplaySeconds(void)
 {
   return nvDisplaySeconds;
+}
+
+unsigned char QueryDisplayAnalogueClock(void) {
+	return nvDisplayAnalogueClock;
 }
 
 unsigned char QueryInvertDisplay(void)
