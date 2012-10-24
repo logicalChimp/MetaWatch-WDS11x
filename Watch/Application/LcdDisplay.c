@@ -1573,8 +1573,8 @@ static void DrawHand(int x, int y, int tOffset, int lOffset, int bOffset, int rO
 static void DrawDateTimeAnalogue(unsigned char OnceConnected) {
 	FillMyBuffer(0, 96, 0x00);
 	DrawTick(46, 10, 4, 4); //tick for 12
-	DrawTick(0, 30, 6, 4); //tick for 9
-	DrawTick(90, 30, 6, 4); //tick for 3
+	DrawTick(0, 35, 6, 4); //tick for 9
+	DrawTick(90, 35, 6, 4); //tick for 3
 	DrawTick(46, 60, 4, 4); //tick for 6
 
 	int hour = RTCHOUR;
@@ -1584,10 +1584,17 @@ static void DrawDateTimeAnalogue(unsigned char OnceConnected) {
     if (hour == 0) hour = 12;
     hour %= 12; //convert to 12-hour display for analogue
 	int hourAngle = (360.0/(12*60))*((hour*60)+min);
-	DrawHand(32, 32, 20, 29, 35, 35, hourAngle); //hour hand
+	DrawHand(32, 37, 22, 29, 40, 35, hourAngle); //hour hand
 
 	int minAngle = (360/60) * min;
-	DrawHand(32, 32, 14, 29, 35, 35, minAngle); //minute hand
+	DrawHand(32, 37, 14, 29, 40, 35, minAngle); //minute hand
+
+    if ( nvDisplaySeconds )
+    {
+		int secs = RTCSEC;
+		int secAngle = (360/60) * secs;
+		DrawHand(32, 37, 18, 32, 37, 32, secAngle); //second hand
+    }
 
 	DrawStatusIcons(OnceConnected);
 	DisplayDate();
