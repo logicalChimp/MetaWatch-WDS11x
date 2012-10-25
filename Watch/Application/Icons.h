@@ -57,6 +57,8 @@ extern const unsigned char pSecondsOffMenuIcon[32*6];
 extern const unsigned char pShippingModeIcon[32*6];
 extern const unsigned char pEnableAccelMenuIcon[32*6];
 extern const unsigned char pDisableAccelMenuIcon[32*6];
+extern const unsigned char pAnalogueClockMenuIcon[20*4];
+extern const unsigned char pDigitalClockMenuIcon[20*4];
 
 extern const unsigned char pBootPageBluetoothOffSwash[32*12];
 extern const unsigned char pBootPageConnectionSwash[32*12];

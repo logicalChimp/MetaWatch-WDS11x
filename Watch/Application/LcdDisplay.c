@@ -1032,15 +1032,18 @@ static void DrawMenu3(void)
 
 static void DrawMenu4(void) {
 	SetFont(MetaWatch7);
-	gRow = 10;
-	gColumn = 6;
+	gRow = 0;
+	gColumn = 7;
 	gBitColumnMask = BIT1;
-	if (nvDisplayAnalogueClock == 0) {
-		WriteFontString("Digital");
-	} else {
-		WriteFontString("Analogue");
-	}
+	WriteFontString("Clock");
 
+	unsigned char const * pIcon;
+	pIcon = nvDisplayAnalogueClock ? pAnalogueClockMenuIcon : pDigitalClockMenuIcon;
+	CopyColumnsIntoMyBuffer(pIcon,
+							10, //button icon start row
+							20, //button icon size in rows
+							7, //button icon start column
+							4); //button icon size in columns
 }
 
 static void DrawCommonMenuIcons(void)
