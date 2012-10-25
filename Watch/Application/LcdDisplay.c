@@ -1583,8 +1583,6 @@ static void DrawDateTimeAnalogue(unsigned char OnceConnected) {
 	int hour = RTCHOUR;
     int min = RTCMIN;
 
-    hour = hour - 1;
-    if (hour == 0) hour = 12;
     hour %= 12; //convert to 12-hour display for analogue
 	int hourAngle = (360.0/(12*60))*((hour*60)+min);
 	DrawHand(32, 37, 22, 29, 40, 35, hourAngle); //hour hand
