@@ -103,6 +103,8 @@ static void ConnectionStateChangeHandler(tMessage *pMsg);
 
 /******************************************************************************/
 static void ToggleClockType(unsigned char Options);
+static void DrawLinkLostMessage(void);
+static void InvertBuffer(int numRowsDrawn);
 static void DrawStatusIcons(unsigned char OnceConnected);
 static void DrawDateTimeAnalogue(unsigned char OnceConnected);
 static void DrawDateTimeDigital(unsigned char OnceConnected);
@@ -150,8 +152,8 @@ static void DisplayDate(void);
 
 /* the internal buffer */
 #define STARTING_ROW                  ( 0 )
-#define WATCH_DRAWN_IDLE_BUFFER_ROWS  ( 63 )
-#define PHONE_IDLE_BUFFER_ROWS        ( 33 )
+#define WATCH_DRAWN_IDLE_BUFFER_ROWS  ( 64 )
+#define PHONE_IDLE_BUFFER_ROWS        ( 32 )
 
 static tLcdLine pMyBuffer[NUM_LCD_ROWS];
 
@@ -1574,7 +1576,10 @@ static void DrawHand(int x, int y, int tOffset, int lOffset, int bOffset, int rO
 }
 
 static void DrawDateTimeAnalogue(unsigned char OnceConnected) {
-	FillMyBuffer(0, 96, 0x00);
+	int actualDrawnBufferRows = WATCH_DRAWN_IDLE_BUFFER_ROWS;
+	if (!QueryPhoneConnected()) actualDrawnBufferRows = 96;
+
+	FillMyBuffer(STARTING_ROW, actualDrawnBufferRows, 0x00);
 	DrawTick(46, 10, 4, 4); //tick for 12
 	DrawTick(0, 35, 6, 4); //tick for 9
 	DrawTick(90, 35, 6, 4); //tick for 3
@@ -1600,7 +1605,37 @@ static void DrawDateTimeAnalogue(unsigned char OnceConnected) {
 	DrawStatusIcons(OnceConnected);
 	DisplayDate();
 
-	SendMyBufferToLcd(0, 63);
+	//if no connection, display connection warning prominently *full time*
+	if (!QueryPhoneConnected()) {
+		DrawLinkLostMessage();
+	}
+
+	// Invert the clock (because it looks good!)
+	if (QueryInvertClock()) {
+		//always limit to WATCH_DRAWN_IDLE_BUFFER_ROWS, even if drawing 96 (link lost) so that Link Lost is inverted compared to clock
+		InvertBuffer(WATCH_DRAWN_IDLE_BUFFER_ROWS);
+	}
+
+	SendMyBufferToLcd(STARTING_ROW, actualDrawnBufferRows);
+}
+
+static void DrawLinkLostMessage(void) {
+	//if no connection, display connection warning prominently *full time*
+	SetFont(MetaWatch16);
+	gRow = 72;
+	gColumn = 2;
+	gBitColumnMask = BIT6;
+	WriteFontString("Link Lost");
+}
+
+static void InvertBuffer(int numRowsDrawn) {
+    int row=0;
+    int col=0;
+    for( ; row < NUM_LCD_ROWS && row < numRowsDrawn; row++) {
+		for(col = 0; col < NUM_LCD_COL_BYTES; col++) {
+			pMyBuffer[row].Data[col] = ~(pMyBuffer[row].Data[col]);
+		}
+    }
 }
 
 static void DrawStatusIcons(unsigned char OnceConnected) {
@@ -1690,26 +1725,6 @@ static void DrawDateTimeDigital(unsigned char OnceConnected) {
   // clean date&time area
   FillMyBuffer(STARTING_ROW, actualDrawnBufferRows, 0x00);
 
-//  if ( DisplayDisconnectWarning && (!QueryPhoneConnected()) )
-//  {
-//    CopyColumnsIntoMyBuffer(pPhoneDisconnectedIdlePageIcon,
-//                            10,
-//                            IDLE_PAGE_ICON_SIZE_IN_ROWS,
-//                            1,
-//                            IDLE_PAGE_ICON_SIZE_IN_COLS);
-//
-//
-//    SetFont(MetaWatch16);
-//
-//    gColumn = 3;
-//    gBitColumnMask = BIT4;
-//    gRow = 11;
-//    WriteFontString("Link Lost");
-//
-//  }
-//  else
-//  {
-
     gRow = 10;
     if ( nvDisplaySeconds )
     {
@@ -1765,91 +1780,21 @@ static void DrawDateTimeDigital(unsigned char OnceConnected) {
 
     if ( GetTimeFormat() == TWELVE_HOUR ) DisplayAmPm();
 
-//  }
-
     DrawStatusIcons(OnceConnected);
+	DisplayDate();
 
-//  SetFont(StatusIcons);
-//  gRow = 2;
-//
-//  if ( OnceConnected )
-//  {
-//    char bluetooth = QueryBluetoothOn();
-//    char connected = QueryPhoneConnected();
-//
-//    if ( (!bluetooth) || (bluetooth&&connected) ) {
-//      gColumn = 8;
-//      gBitColumnMask = BIT5;
-//    }
-//    else
-//    {
-//      gColumn = 8;
-//      gBitColumnMask = BIT1;
-//    }
-//
-//    DrawStatusIconCross( bluetooth );
-//    WriteFontCharacter(STATUS_ICON_BLUETOOTH);
-//
-//    if (bluetooth) {
-//      AdvanceBitColumnMask(1);
-//      DrawStatusIconCross( connected );
-//      WriteFontCharacter(STATUS_ICON_PHONE);
-//    }
-//  }
-//
-//	gColumn = 10;
-//	gBitColumnMask = BIT0;
-//	if ( QueryBatteryCharging() )
-//	{
-//		WriteFontCharacter(STATUS_ICON_SPARK);
-//	}
-//
-//	unsigned int bV = ReadBatterySenseAverage();
-//
-//	gColumn = 10;
-//	gBitColumnMask = BIT6;
-//
-//	if ( bV < 3500 )
-//	{
-//	  WriteFontCharacter(STATUS_ICON_BATTERY_EMPTY);
-//	}
-//	else if ( bV > 4000 )
-//	{
-//		WriteFontCharacter(STATUS_ICON_BATTERY_FULL);
-//	}
-//	else
-//	{
-//		WriteFontCharacter(STATUS_ICON_BATTERY_HALF);
-//	}
+	//if no connection, display connection warning prominently *full time*
+	if (!QueryPhoneConnected()) {
+		DrawLinkLostMessage();
+	}
 
-  DisplayDate();
+	// Invert the clock (because it looks good!)
+	if (QueryInvertClock()) {
+		//always limit to WATCH_DRAWN_IDLE_BUFFER_ROWS, even if drawing 96 (link lost) so that Link Lost is inverted compared to clock
+		InvertBuffer(WATCH_DRAWN_IDLE_BUFFER_ROWS);
+	}
 
-  //if no connection, display connection warning prominently *full time*
-  if (!QueryPhoneConnected()) {
-//    CopyColumnsIntoMyBuffer(pPhoneDisconnectedIdlePageIcon, 87, IDLE_PAGE_ICON_SIZE_IN_ROWS, 1, IDLE_PAGE_ICON_SIZE_IN_COLS);
-    SetFont(MetaWatch16);
-
-    gRow = 72;
-    gColumn = 2;
-	gBitColumnMask = BIT6;
-    WriteFontString("Link Lost");
-  }
-
-  // Invert the clock (because it looks good!)
-  if ( QueryInvertClock() )
-    {
-    int row=0;
-    int col=0;
-    for( ; row < NUM_LCD_ROWS && row < actualDrawnBufferRows; row++)
-    {
-      for(col = 0; col < NUM_LCD_COL_BYTES; col++)
-      {
-        pMyBuffer[row].Data[col] = ~(pMyBuffer[row].Data[col]);
-      }
-    }
-  }
-
-  SendMyBufferToLcd(STARTING_ROW, actualDrawnBufferRows );
+	SendMyBufferToLcd(STARTING_ROW, actualDrawnBufferRows );
 }
 
 static void DisplayAmPm(void)
