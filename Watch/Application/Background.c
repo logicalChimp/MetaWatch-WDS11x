@@ -259,6 +259,15 @@ static void BackgroundTask(void *pvParameters)
 
 }
 
+void SetLedTimeoutDuration(int secs) {
+      SetupOneSecondTimer(LedTimerId,
+	                      ONE_SECOND*secs,
+	                      NO_REPEAT,
+	                      BACKGROUND_QINDEX,
+	                      LedChange,
+	                      LED_OFF_OPTION);
+}
+
 /*! Handle the messages routed to the background task */
 static void BackgroundMessageHandler(tMessage* pMsg)
 {

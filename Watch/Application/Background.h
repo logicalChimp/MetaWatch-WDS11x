@@ -39,5 +39,7 @@ void InitializeBackgroundTask(void);
 /*! Save the RstNmi pin configuration value in non-volatile menu */
 void SaveRstNmiConfiguration(void);
 
+void SetLedTimeoutDuration(int secs);
+
 #endif //BACKGROUND_H
 

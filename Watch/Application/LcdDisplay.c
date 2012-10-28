@@ -102,6 +102,7 @@ static void ToggleSecondsHandler(unsigned char MsgOptions);
 static void ConnectionStateChangeHandler(tMessage *pMsg);
 
 /******************************************************************************/
+static void CycleLedTimeout(void);
 static void ToggleClockType(unsigned char Options);
 static void DrawLinkLostMessage(void);
 static void InvertBuffer(int numRowsDrawn);
@@ -170,8 +171,10 @@ static void SaveIdleBufferInvert(void);
 
 unsigned char nvDisplaySeconds = 0;
 unsigned char nvDisplayAnalogueClock = 0;
+unsigned char nvExtendedLedTimeout = 3; //3 seconds
 static void SaveDisplaySeconds(void);
 static void SaveClockType(void);
+static void SaveLedTimeout(void);
 
 /******************************************************************************/
 
@@ -208,7 +211,7 @@ static const unsigned char ButtonEvent[PAGE_NUMBERS][BUTTON_NUMBERS][2] =
   {{BarCode, 0}, {0, 0}, {MenuModeMsg, MENU_MODE_OPTION_PAGE1}, {IdleUpdate, IDLE_FULL_UPDATE}, {WatchStatusMsg, 0}},
   {{BarCode, 0}, {0, 0}, {MenuModeMsg, MENU_MODE_OPTION_PAGE1}, {ListPairedDevicesMsg, 0}, {IdleUpdate, IDLE_FULL_UPDATE}},
   {{IdleUpdate, IDLE_FULL_UPDATE}, {0, 0}, {MenuModeMsg, MENU_MODE_OPTION_PAGE1}, {ListPairedDevicesMsg, 0}, {WatchStatusMsg, 0}},
-  {{MenuButtonMsg, MENU_BUTTON_OPTION_TOGGLE_CLOCK}, {MenuModeMsg, MENU_MODE_OPTION_PAGE1}, {MenuButtonMsg, MENU_BUTTON_OPTION_EXIT}, {0, 0}, {0, 0}}
+  {{MenuButtonMsg, MENU_BUTTON_OPTION_TOGGLE_CLOCK}, {MenuModeMsg, MENU_MODE_OPTION_PAGE1}, {MenuButtonMsg, MENU_BUTTON_OPTION_EXIT}, {0, 0}, {MenuButtonMsg, MENU_BUTTON_OPTION_CYCLE_LED_TIMEOUT}}
 };
 
 static unsigned char SplashTimeout;
@@ -283,6 +286,7 @@ static void DisplayTask(void *pvParameters)
   InitializeIdleBufferInvert();
   InitializeDisplaySeconds();
   InitializeClockType();
+  InitializeLedTimeout();
   InitializeLinkAlarmEnable();
   InitializeModeTimeouts();
   InitializeTimeFormat();
@@ -709,6 +713,7 @@ static void MenuButtonHandler(unsigned char MsgOptions)
     SaveIdleBufferInvert();
     SaveDisplaySeconds();
     SaveClockType();
+    SaveLedTimeout();
 
     /* go back to the idle screen */
     PageType = PAGE_TYPE_IDLE;
@@ -751,6 +756,11 @@ static void MenuButtonHandler(unsigned char MsgOptions)
 
   case MENU_BUTTON_OPTION_INVERT_DISPLAY:
     nvIdleBufferInvert = (nvIdleBufferInvert + 1) % 4;
+    MenuModeHandler(MENU_MODE_OPTION_UPDATE_CURRENT_PAGE);
+    break;
+
+  case MENU_BUTTON_OPTION_CYCLE_LED_TIMEOUT:
+    CycleLedTimeout();
     MenuModeHandler(MENU_MODE_OPTION_UPDATE_CURRENT_PAGE);
     break;
 
@@ -869,6 +879,13 @@ static void ToggleClockType(unsigned char Options) {
 
 	if ( Options == TOGGLE_CLOCK_OPTIONS_UPDATE_IDLE )
 		IdleUpdateHandler(DATE_TIME_ONLY);
+}
+
+static void CycleLedTimeout() {
+	nvExtendedLedTimeout = !nvExtendedLedTimeout;
+
+	if (nvExtendedLedTimeout) SetLedTimeoutDuration(10); //10 seconds
+	else SetLedTimeoutDuration(3); //3 seconds
 }
 
 static void DrawConnectionScreen()
@@ -1033,6 +1050,8 @@ static void DrawMenu3(void)
 }
 
 static void DrawMenu4(void) {
+
+	//draw clock toggle option (top-right button)
 	SetFont(MetaWatch7);
 	gRow = 0;
 	gColumn = 7;
@@ -1046,6 +1065,20 @@ static void DrawMenu4(void) {
 							20, //button icon size in rows
 							7, //button icon start column
 							4); //button icon size in columns
+
+	//draw LED timeout option (top-left button)
+	SetFont(MetaWatch7);
+	gRow = 0;
+	gColumn = 0;
+	gBitColumnMask = BIT4;
+	WriteFontString("LED Time");
+
+	SetFont(MetaWatch16);
+	gRow = 10;
+	gColumn = 0;
+	gBitColumnMask = BIT4;
+	if (nvExtendedLedTimeout) WriteFontString("10 secs");
+	else WriteFontString(" 3 secs");
 }
 
 static void DrawCommonMenuIcons(void)
@@ -2042,6 +2075,13 @@ void InitializeClockType(void)
 					&nvDisplayAnalogueClock);
 }
 
+void InitializeLedTimeout(void) {
+	nvExtendedLedTimeout = 0;
+	OsalNvItemInit( NVID_LED_TIMEOUT,
+					sizeof(nvExtendedLedTimeout),
+					&nvExtendedLedTimeout);
+}
+
 #if 0
 static void SaveIdleBufferConfig(void)
 {
@@ -2074,6 +2114,14 @@ static void SaveClockType(void)
               NV_ZERO_OFFSET,
               sizeof(nvDisplayAnalogueClock),
               &nvDisplayAnalogueClock);
+}
+
+static void SaveLedTimeout(void)
+{
+  OsalNvWrite(NVID_LED_TIMEOUT,
+              NV_ZERO_OFFSET,
+              sizeof(nvExtendedLedTimeout),
+              &nvExtendedLedTimeout);
 }
 
 unsigned char QueryDisplaySeconds(void)

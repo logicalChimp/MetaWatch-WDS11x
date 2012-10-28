@@ -91,6 +91,8 @@ void InitializeDisplaySeconds(void);
 /*! Initialize flash/ram value for whether or not to display time using an analogue clock (defaults to digital) */
 void InitializeClockType(void);
 
+/*! Initialize flash/ram value for whether or not the LED timeout should be extended to 10s (defaults to non-extended 3s) */
+void InitializeLedTimeout(void);
 
 /*! Called from RTC one second interrupt
  *
