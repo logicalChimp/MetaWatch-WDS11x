@@ -368,6 +368,8 @@ void RouteMsg(tMessage* pMsg)
     case ConnectionStateChangeMsg:      SendMsgToQ(DISPLAY_QINDEX,pMsg);    break;
     case ModifyTimeMsg:                 SendMsgToQ(DISPLAY_QINDEX,pMsg);    break;
     case MenuButtonMsg:                 SendMsgToQ(DISPLAY_QINDEX,pMsg);    break;
+    case TestPageMsg:                   SendMsgToQ(DISPLAY_QINDEX,pMsg);    break;
+    case TestPageButtonMsg:             SendMsgToQ(DISPLAY_QINDEX,pMsg);    break;
     case ToggleSecondsMsg:              SendMsgToQ(DISPLAY_QINDEX,pMsg);    break;
     case LedChange:                     SendMsgToQ(BACKGROUND_QINDEX,pMsg); break;
     case AccelerometerHostMsg:          SendMsgToQ(SPP_TASK_QINDEX,pMsg);   break;

@@ -68,7 +68,7 @@
 #define PAGE_TYPE_IDLE     (0)
 #define PAGE_TYPE_MENU     (1)
 #define PAGE_TYPE_INFO     (2)
-#define PAGE_NUMBERS       (11)
+#define PAGE_NUMBERS       (12)
 
 #define BUTTON_NUMBERS     (5)
 #define BTN_MSG            (0)
@@ -101,6 +101,9 @@ static void MenuButtonHandler(unsigned char MsgOptions);
 static void ToggleSecondsHandler(unsigned char MsgOptions);
 static void ConnectionStateChangeHandler(tMessage *pMsg);
 
+/******************************************************************************/
+static void ShowTestPage(unsigned char Options);
+static void TestPageButtonHandler(unsigned char MsgOptions);
 /******************************************************************************/
 static void CycleLedTimeout(void);
 static void ToggleClockType(unsigned char Options);
@@ -158,6 +161,7 @@ static void DisplayDate(void);
 
 static tLcdLine pMyBuffer[NUM_LCD_ROWS];
 
+//pre-calculated Math.SIN values for generating the position of hands on the analogue clock face
 const float sine_table[91] = {0, 0.01, 0.03, 0.05, 0.06, 0.08, 0.1, 0.12, 0.13, 0.15, 0.17, 0.19, 0.2, 0.22, 0.24, 0.25, 0.27, 0.29, 0.3, 0.32, 0.34, 0.35, 0.37, 0.39, 0.4, 0.42, 0.43, 0.45, 0.46, 0.48, 0.49, 0.51, 0.52, 0.54, 0.55, 0.57, 0.58, 0.6, 0.61, 0.62, 0.64, 0.65, 0.66, 0.68, 0.69, 0.7, 0.71, 0.73, 0.74, 0.75, 0.76, 0.77, 0.78, 0.79, 0.8, 0.81, 0.82, 0.83, 0.84, 0.85, 0.86, 0.87, 0.88, 0.89, 0.89, 0.9, 0.91, 0.92, 0.92, 0.93, 0.93, 0.94, 0.95, 0.95, 0.96, 0.96, 0.97, 0.97, 0.97, 0.98, 0.98, 0.98, 0.99, 0.99, 0.99, 0.99, 0.99, 0.99, 0.99, 0.99, 1};
 
 /******************************************************************************/
@@ -193,7 +197,8 @@ typedef enum
   ListPairedDevicesPage,
   WatchStatusPage,
   QrCodePage,
-  Menu4Page
+  Menu4Page,
+  TestPage
 } eIdleModePage;
 
 static eIdleModePage CurrentPage[PAGE_TYPE_NUM];
@@ -211,7 +216,8 @@ static const unsigned char ButtonEvent[PAGE_NUMBERS][BUTTON_NUMBERS][2] =
   {{BarCode, 0}, {0, 0}, {MenuModeMsg, MENU_MODE_OPTION_PAGE1}, {IdleUpdate, IDLE_FULL_UPDATE}, {WatchStatusMsg, 0}},
   {{BarCode, 0}, {0, 0}, {MenuModeMsg, MENU_MODE_OPTION_PAGE1}, {ListPairedDevicesMsg, 0}, {IdleUpdate, IDLE_FULL_UPDATE}},
   {{IdleUpdate, IDLE_FULL_UPDATE}, {0, 0}, {MenuModeMsg, MENU_MODE_OPTION_PAGE1}, {ListPairedDevicesMsg, 0}, {WatchStatusMsg, 0}},
-  {{MenuButtonMsg, MENU_BUTTON_OPTION_TOGGLE_CLOCK}, {MenuModeMsg, MENU_MODE_OPTION_PAGE1}, {MenuButtonMsg, MENU_BUTTON_OPTION_EXIT}, {0, 0}, {MenuButtonMsg, MENU_BUTTON_OPTION_CYCLE_LED_TIMEOUT}}
+  {{MenuButtonMsg, MENU_BUTTON_OPTION_TOGGLE_CLOCK}, {MenuModeMsg, MENU_MODE_OPTION_PAGE1}, {MenuButtonMsg, MENU_BUTTON_OPTION_EXIT}, {MenuButtonMsg, MENU_BUTTON_OPTION_SHOW_TEST_PAGE}, {MenuButtonMsg, MENU_BUTTON_OPTION_CYCLE_LED_TIMEOUT}},
+  {{TestPageButtonMsg, TEST_PAGE_BUTTON_TR}, {TestPageButtonMsg, TEST_PAGE_BUTTON_MR}, {TestPageButtonMsg, TEST_PAGE_BUTTON_BR}, {TestPageButtonMsg, TEST_PAGE_BUTTON_ML}, {TestPageButtonMsg, TEST_PAGE_BUTTON_TL}}
 };
 
 static unsigned char SplashTimeout;
@@ -396,6 +402,14 @@ static void DisplayQueueMessageHandler(tMessage* pMsg)
   case MenuButtonMsg:
     MenuButtonHandler(pMsg->Options);
     break;
+
+  case TestPageMsg:
+	ShowTestPage(pMsg->Options);
+	break;
+
+  case TestPageButtonMsg:
+	TestPageButtonHandler(pMsg->Options);
+	break;
 
   case ToggleSecondsMsg:
     ToggleSecondsHandler(pMsg->Options);
@@ -587,6 +601,10 @@ static void ConnectionStateChangeHandler(tMessage *pMsg)
     {
       WatchStatusScreenHandler();
     }
+    else if (CurrentPage[PAGE_TYPE_INFO] == TestPage)
+    {
+    	ShowTestPage(0x21);
+    }
   }
 }
 
@@ -608,6 +626,114 @@ static void DetermineIdlePage(void)
       
     else CurrentPage[PAGE_TYPE_IDLE] = BluetoothOffPage;
   }
+}
+
+static void ShowTestPage(unsigned char Options) {
+	StopDisplayTimer();
+
+	// clear screen
+	FillMyBuffer(STARTING_ROW, NUM_LCD_ROWS, 0x00);
+
+	/* Start Test Page Drawing */
+	SetFont(MetaWatch7);
+	gRow = 2;
+	gColumn = 0;
+	gBitColumnMask = BIT4;
+	WriteFontString("Test page");
+
+	//insert code here
+	LightSenseCycle();
+//	tMessage Msg;
+//    SetupMessage(&Msg, ReadLightSensorMsg, NO_MSG_OPTIONS);
+//    RouteMsg(&Msg);
+
+//	unsigned int lv = ReadLightSenseAverage();
+	unsigned int lv = ReadLightSense();
+
+	SetFont(MetaWatch7);
+	gRow = 20;
+	gColumn = 0;
+	gBitColumnMask = BIT4;
+	WriteFontString("Light Sensor Val");
+
+	gRow = 32;
+	gColumn = 0;
+	gBitColumnMask = BIT4;
+
+	int tsd = (lv/1000)%10;
+	int hsd = (lv/100)%10;
+	int dsd = (lv/10)%10;
+	int usd = lv%10;
+
+	WriteFontCharacter(tsd+'0');
+	WriteFontCharacter('.');
+	WriteFontCharacter(hsd+'0');
+	WriteFontCharacter(dsd+'0');
+	WriteFontCharacter(usd+'0');
+
+	//Show default button mappings
+	SetFont(MetaWatch7);
+	gRow = 85;
+	gColumn = 0;
+	gBitColumnMask = BIT4;
+	WriteFontString("LED");
+
+	gColumn = 9;
+	gBitColumnMask = BIT1;
+	WriteFontString("EXIT");
+	/* End Test Page Drawing */
+
+	PageType = PAGE_TYPE_INFO;
+	CurrentPage[PageType] = TestPage;
+	ConfigureIdleUserInterfaceButtons();
+
+	SendMyBufferToLcd(STARTING_ROW, NUM_LCD_ROWS);
+
+	/* refresh the test page once a second */
+	SetupOneSecondTimer(DisplayTimerId,
+						ONE_SECOND,
+						NO_REPEAT,
+						DISPLAY_QINDEX,
+						TestPageMsg,
+						Options);
+
+	StartOneSecondTimer(DisplayTimerId);
+}
+
+static void TestPageButtonHandler(unsigned char MsgOptions) {
+
+	//insert test action after button definition
+	switch (MsgOptions) {
+		case TEST_PAGE_BUTTON_TR:
+			break;
+
+		case TEST_PAGE_BUTTON_MR:
+			break;
+
+		case TEST_PAGE_BUTTON_BR:
+			// Exit TestPage - go back to the idle screen
+			StopDisplayTimer();
+			PageType = PAGE_TYPE_IDLE;
+			IdleUpdateHandler(IDLE_FULL_UPDATE);
+			break;
+
+		case TEST_PAGE_BUTTON_BL:
+			//don't try to map this button - it is perma-configured for LED!
+			break;
+
+		case TEST_PAGE_BUTTON_ML:
+			break;
+
+		case TEST_PAGE_BUTTON_TL:
+			break;
+
+		default:
+			// Exit TestPage - go back to the idle screen
+			StopDisplayTimer();
+			PageType = PAGE_TYPE_IDLE;
+			IdleUpdateHandler(IDLE_FULL_UPDATE);
+			break;
+	}
 }
 
 static void MenuModeHandler(unsigned char MsgOptions)
@@ -763,6 +889,10 @@ static void MenuButtonHandler(unsigned char MsgOptions)
     CycleLedTimeout();
     MenuModeHandler(MENU_MODE_OPTION_UPDATE_CURRENT_PAGE);
     break;
+
+  case MENU_BUTTON_OPTION_SHOW_TEST_PAGE:
+	ShowTestPage(MsgOptions);
+	break;
 
   case MENU_BUTTON_OPTION_TOGGLE_ACCEL:
 
@@ -1079,6 +1209,14 @@ static void DrawMenu4(void) {
 	gBitColumnMask = BIT4;
 	if (nvExtendedLedTimeout) WriteFontString("10 secs");
 	else WriteFontString(" 3 secs");
+
+	//Show 'Test Page' option (mid-left button)
+	SetFont(MetaWatch7);
+	gRow = 42;
+	gColumn = 0;
+	gBitColumnMask = BIT4;
+	WriteFontString("Test Page");
+
 }
 
 static void DrawCommonMenuIcons(void)

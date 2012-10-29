@@ -259,6 +259,7 @@ typedef enum
    *
    ****************************************************************************/
   IdleUpdate = 0xa0,
+  TestPageMsg = 0xa1,
   WatchDrawnScreenTimeout = 0xa2,
   SplashTimeoutMsg = 0xa3,
   Unused_0xa4 = 0xa4,
@@ -273,6 +274,7 @@ typedef enum
   ModifyTimeMsg = 0xad,
   MenuButtonMsg = 0xae,
   ToggleSecondsMsg = 0xaf,
+  TestPageButtonMsg = 0x70,
 
   // BLE messages
   SetCallbackTimerMsg = 0xb0,
@@ -568,6 +570,14 @@ typedef struct
 #define MENU_BUTTON_OPTION_TOGGLE_ACCEL                 ( 0x09 )
 #define MENU_BUTTON_OPTION_TOGGLE_CLOCK					( 0x0A )
 #define MENU_BUTTON_OPTION_CYCLE_LED_TIMEOUT            ( 0x0B )
+#define MENU_BUTTON_OPTION_SHOW_TEST_PAGE				( 0x0C )
+
+#define TEST_PAGE_BUTTON_TL		( 0x01 )
+#define TEST_PAGE_BUTTON_ML		( 0x02 )
+#define TEST_PAGE_BUTTON_BL		( 0x03 )
+#define TEST_PAGE_BUTTON_TR		( 0x04 )
+#define TEST_PAGE_BUTTON_MR		( 0x05 )
+#define TEST_PAGE_BUTTON_BR		( 0x06 )
 
 #define PAIRING_CONTROL_OPTION_DISABLE_PAIRING ( 0x01 )
 #define PAIRING_CONTROL_OPTION_ENABLE_PAIRING  ( 0x02 )
