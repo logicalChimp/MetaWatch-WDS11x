@@ -96,6 +96,12 @@ void InitializeLedTimeout(void);
 //allow direct read from flash, so that correct delay can be set on boot up
 unsigned char readLedTimeoutFromFlash(void);
 
+/*! Initialize flash/ram value for whether or not the LED should check the light sensor before illuminating */
+void InitializeLedLimitByLightSensor(void);
+
+//check whether the LED should check the light sensor first
+unsigned char LimitLedByLightSensor(void);
+
 /*! Called from RTC one second interrupt
  *
  * \return 1 if lpm should be exited, 0 otherwise

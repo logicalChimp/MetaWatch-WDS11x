@@ -72,6 +72,7 @@
 #define NVID_LANGUAGE                     ( 0x200c )
 #define NVID_CLOCK_TYPE					  ( 0x200d )
 #define NVID_LED_TIMEOUT				  ( 0x200e )
+#define NVID_LED_LIMIT_BY_LIGHT_SENSOR    ( 0x200f )
 
 #define NVID_TOP_OLED_CONTRAST_DAY        ( 0x3000 )
 #define NVID_BOTTOM_OLED_CONTRAST_DAY     ( 0x3001 )

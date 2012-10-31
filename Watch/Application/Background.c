@@ -477,9 +477,12 @@ static void LedChangeHandler(tMessage* pMsg)
   switch (pMsg->Options)
   {
   case LED_ON_OPTION:
-    if (LightLevelAboveLedThreshold()) return;
-    //else drop-through to next case statement
-    /* no break */
+    if (LimitLedByLightSensor() && LightLevelAboveLedThreshold()) return;
+    LedOn = 1;
+    ENABLE_LCD_LED();
+    StartOneSecondTimer(LedTimerId);
+    break;
+
   case LED_FORCE_ON_OPTION:
     LedOn = 1;
     ENABLE_LCD_LED();
@@ -495,6 +498,7 @@ static void LedChangeHandler(tMessage* pMsg)
     }
     else
     {
+      if (LimitLedByLightSensor() && LightLevelAboveLedThreshold()) return;
       LedOn = 1;
       ENABLE_LCD_LED();
       StartOneSecondTimer(LedTimerId);
@@ -502,7 +506,7 @@ static void LedChangeHandler(tMessage* pMsg)
     break;
 
   case LED_START_OFF_TIMER:
-	if (LightLevelAboveLedThreshold()) return;
+	if (LimitLedByLightSensor() && LightLevelAboveLedThreshold()) return;
     LedOn = 1;
     ENABLE_LCD_LED();
     StartOneSecondTimer(LedTimerId);

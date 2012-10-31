@@ -106,6 +106,7 @@ static void ShowTestPage(unsigned char Options);
 static void TestPageButtonHandler(unsigned char MsgOptions);
 /******************************************************************************/
 static void CycleLedTimeout(void);
+static void ToggleLedLightSensor(void);
 static void ToggleClockType(unsigned char Options);
 static void DrawLinkLostMessage(void);
 static void InvertBuffer(int numRowsDrawn);
@@ -173,12 +174,14 @@ static void SaveIdleBufferInvert(void);
 
 /******************************************************************************/
 
-unsigned char nvDisplaySeconds = 0;
-unsigned char nvDisplayAnalogueClock = 0;
+unsigned char nvDisplaySeconds = 0; //0 = don't display seconds
+unsigned char nvDisplayAnalogueClock = 0; //0 == display digital
 unsigned char nvExtendedLedTimeout = 3; //3 seconds
+unsigned char nvLedLimitByLightSensor = 0; //0 = off
 static void SaveDisplaySeconds(void);
 static void SaveClockType(void);
 static void SaveLedTimeout(void);
+static void SaveLedLimitByLightSensor(void);
 
 /******************************************************************************/
 
@@ -216,7 +219,7 @@ static const unsigned char ButtonEvent[PAGE_NUMBERS][BUTTON_NUMBERS][2] =
   {{BarCode, 0}, {0, 0}, {MenuModeMsg, MENU_MODE_OPTION_PAGE1}, {IdleUpdate, IDLE_FULL_UPDATE}, {WatchStatusMsg, 0}},
   {{BarCode, 0}, {0, 0}, {MenuModeMsg, MENU_MODE_OPTION_PAGE1}, {ListPairedDevicesMsg, 0}, {IdleUpdate, IDLE_FULL_UPDATE}},
   {{IdleUpdate, IDLE_FULL_UPDATE}, {0, 0}, {MenuModeMsg, MENU_MODE_OPTION_PAGE1}, {ListPairedDevicesMsg, 0}, {WatchStatusMsg, 0}},
-  {{MenuButtonMsg, MENU_BUTTON_OPTION_TOGGLE_CLOCK}, {MenuModeMsg, MENU_MODE_OPTION_PAGE1}, {MenuButtonMsg, MENU_BUTTON_OPTION_EXIT}, {MenuButtonMsg, MENU_BUTTON_OPTION_SHOW_TEST_PAGE}, {MenuButtonMsg, MENU_BUTTON_OPTION_CYCLE_LED_TIMEOUT}},
+  {{MenuButtonMsg, MENU_BUTTON_OPTION_TOGGLE_CLOCK}, {MenuModeMsg, MENU_MODE_OPTION_PAGE1}, {MenuButtonMsg, MENU_BUTTON_OPTION_EXIT}, {MenuButtonMsg, MENU_BUTOTN_OPTION_TOGGLE_LED_LIGHT_SENSOR}, {MenuButtonMsg, MENU_BUTTON_OPTION_CYCLE_LED_TIMEOUT}},
   {{TestPageButtonMsg, TEST_PAGE_BUTTON_TR}, {TestPageButtonMsg, TEST_PAGE_BUTTON_MR}, {TestPageButtonMsg, TEST_PAGE_BUTTON_BR}, {TestPageButtonMsg, TEST_PAGE_BUTTON_ML}, {TestPageButtonMsg, TEST_PAGE_BUTTON_TL}}
 };
 
@@ -293,6 +296,7 @@ static void DisplayTask(void *pvParameters)
   InitializeDisplaySeconds();
   InitializeClockType();
   InitializeLedTimeout();
+  InitializeLedLimitByLightSensor();
   InitializeLinkAlarmEnable();
   InitializeModeTimeouts();
   InitializeTimeFormat();
@@ -838,6 +842,7 @@ static void MenuButtonHandler(unsigned char MsgOptions)
     SaveDisplaySeconds();
     SaveClockType();
     SaveLedTimeout();
+    SaveLedLimitByLightSensor();
 
     /* go back to the idle screen */
     PageType = PAGE_TYPE_IDLE;
@@ -885,6 +890,11 @@ static void MenuButtonHandler(unsigned char MsgOptions)
 
   case MENU_BUTTON_OPTION_CYCLE_LED_TIMEOUT:
     CycleLedTimeout();
+    MenuModeHandler(MENU_MODE_OPTION_UPDATE_CURRENT_PAGE);
+    break;
+
+  case MENU_BUTOTN_OPTION_TOGGLE_LED_LIGHT_SENSOR:
+	ToggleLedLightSensor();
     MenuModeHandler(MENU_MODE_OPTION_UPDATE_CURRENT_PAGE);
     break;
 
@@ -1014,6 +1024,10 @@ static void CycleLedTimeout() {
 
 	if (nvExtendedLedTimeout) SetLedTimeoutDuration(10); //10 seconds
 	else SetLedTimeoutDuration(3); //3 seconds
+}
+
+static void ToggleLedLightSensor(void) {
+	nvLedLimitByLightSensor = !nvLedLimitByLightSensor;
 }
 
 static void DrawConnectionScreen()
@@ -1209,12 +1223,25 @@ static void DrawMenu4(void) {
 	else WriteFontString(" 3 secs");
 
 	//Show 'Test Page' option (mid-left button)
+//	SetFont(MetaWatch7);
+//	gRow = 42;
+//	gColumn = 0;
+//	gBitColumnMask = BIT4;
+//	WriteFontString("Test Page");
+
+	//Show 'Led Light Sensor' option (mid-left button)
 	SetFont(MetaWatch7);
-	gRow = 42;
+	gRow = 34;
 	gColumn = 0;
 	gBitColumnMask = BIT4;
-	WriteFontString("Test Page");
+	WriteFontString("LED LM");
 
+	SetFont(MetaWatch16);
+	gRow = 44;
+	gColumn = 0;
+	gBitColumnMask = BIT4;
+	if (nvLedLimitByLightSensor) WriteFontString("ON");
+	else WriteFontString("OFF");
 }
 
 static void DrawCommonMenuIcons(void)
@@ -2212,10 +2239,21 @@ void InitializeClockType(void)
 }
 
 void InitializeLedTimeout(void) {
-	nvExtendedLedTimeout = 0;
+	nvExtendedLedTimeout = 3;
 	OsalNvItemInit( NVID_LED_TIMEOUT,
 					sizeof(nvExtendedLedTimeout),
 					&nvExtendedLedTimeout);
+}
+
+void InitializeLedLimitByLightSensor(void) {
+	nvLedLimitByLightSensor = 0;
+	OsalNvItemInit( NVID_LED_LIMIT_BY_LIGHT_SENSOR,
+					sizeof(nvLedLimitByLightSensor),
+					&nvLedLimitByLightSensor);
+}
+
+unsigned char LimitLedByLightSensor(void) {
+	return nvLedLimitByLightSensor;
 }
 
 unsigned char readLedTimeoutFromFlash(void) {
@@ -2266,6 +2304,14 @@ static void SaveLedTimeout(void)
               NV_ZERO_OFFSET,
               sizeof(nvExtendedLedTimeout),
               &nvExtendedLedTimeout);
+}
+
+static void SaveLedLimitByLightSensor(void)
+{
+  OsalNvWrite(NVID_LED_LIMIT_BY_LIGHT_SENSOR,
+              NV_ZERO_OFFSET,
+              sizeof(nvLedLimitByLightSensor),
+              &nvLedLimitByLightSensor);
 }
 
 unsigned char QueryDisplaySeconds(void)
