@@ -642,13 +642,11 @@ static void ShowTestPage(unsigned char Options) {
 	WriteFontString("Test page");
 
 	//insert code here
-	LightSenseCycle();
-//	tMessage Msg;
-//    SetupMessage(&Msg, ReadLightSensorMsg, NO_MSG_OPTIONS);
-//    RouteMsg(&Msg);
-
-//	unsigned int lv = ReadLightSenseAverage();
-	unsigned int lv = ReadLightSense();
+	int i=0;
+	for (; i < 10; i++) {
+		LightSenseCycle();
+	}
+	unsigned int lv = ReadLightSenseAverage();
 
 	SetFont(MetaWatch7);
 	gRow = 20;
@@ -928,7 +926,7 @@ static void DontChangeButtonConfiguration(void)
                        SW_D_INDEX,
                        BUTTON_STATE_IMMEDIATE,
                        LedChange,
-                       LED_ON_OPTION);
+                       LED_FORCE_ON_OPTION);
 
     /* software reset is available in all modes */
     DefineButtonAction(i,
@@ -2218,6 +2216,14 @@ void InitializeLedTimeout(void) {
 	OsalNvItemInit( NVID_LED_TIMEOUT,
 					sizeof(nvExtendedLedTimeout),
 					&nvExtendedLedTimeout);
+}
+
+unsigned char readLedTimeoutFromFlash(void) {
+	unsigned char ledTimeout = 3; //default to 3s if not set
+	OsalNvItemInit( NVID_LED_TIMEOUT,
+					sizeof(ledTimeout),
+					&ledTimeout);
+	return ledTimeout;
 }
 
 #if 0

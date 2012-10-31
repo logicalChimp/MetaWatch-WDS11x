@@ -93,6 +93,8 @@ void InitializeClockType(void);
 
 /*! Initialize flash/ram value for whether or not the LED timeout should be extended to 10s (defaults to non-extended 3s) */
 void InitializeLedTimeout(void);
+//allow direct read from flash, so that correct delay can be set on boot up
+unsigned char readLedTimeoutFromFlash(void);
 
 /*! Called from RTC one second interrupt
  *

@@ -305,6 +305,7 @@ typedef enum
 #define LED_ON_OPTION       ( 0x01 )
 #define LED_TOGGLE_OPTION   ( 0x02 )
 #define LED_START_OFF_TIMER ( 0x03 )
+#define LED_FORCE_ON_OPTION ( 0x04 )
 
 /******************************************************************************/
 

@@ -184,8 +184,9 @@ static void BackgroundTask(void *pvParameters)
    */
   LedTimerId = AllocateOneSecondTimer();
 
+  unsigned char ledTimeout = readLedTimeoutFromFlash();
   SetupOneSecondTimer(LedTimerId,
-                      ONE_SECOND*3,
+                      ONE_SECOND*ledTimeout,
                       NO_REPEAT,
                       BACKGROUND_QINDEX,
                       LedChange,
@@ -456,7 +457,15 @@ static void AdvanceWatchHandsHandler(tMessage* pMsg)
 #endif
 }
 
-
+static int LightLevelAboveLedThreshold(void) {
+	//take 10 readings (~100ms), so we can get an average
+	int i=0;
+	for (; i < 10; i++) {
+		LightSenseCycle();
+	}
+	unsigned int lv = ReadLightSenseAverage();
+	return (lv > 0) ? 1 : 0; //we got some light
+}
 
 /*! Led Change Handler
  *
@@ -468,6 +477,10 @@ static void LedChangeHandler(tMessage* pMsg)
   switch (pMsg->Options)
   {
   case LED_ON_OPTION:
+    if (LightLevelAboveLedThreshold()) return;
+    //else drop-through to next case statement
+    /* no break */
+  case LED_FORCE_ON_OPTION:
     LedOn = 1;
     ENABLE_LCD_LED();
     StartOneSecondTimer(LedTimerId);
@@ -489,6 +502,7 @@ static void LedChangeHandler(tMessage* pMsg)
     break;
 
   case LED_START_OFF_TIMER:
+	if (LightLevelAboveLedThreshold()) return;
     LedOn = 1;
     ENABLE_LCD_LED();
     StartOneSecondTimer(LedTimerId);
